@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* RestoPulse brand: indigo primary, cyan accent */
+    --primary: 239 84% 60%;
+    --primary-foreground: 0 0% 100%;
+    --brand: 239 84% 60%;
+    --brand-accent: 188 94% 43%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 239 84% 60%;
+
+    /* Sentiment palette */
+    --sentiment-positive: 152 76% 40%;
+    --sentiment-neutral:  215 16% 60%;
+    --sentiment-negative: 0 84% 60%;
+
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --card: 224 71% 6%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 224 71% 6%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 239 84% 67%;
+    --primary-foreground: 222 47% 11%;
+    --brand: 239 84% 67%;
+    --brand-accent: 188 94% 56%;
+
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 213 31% 91%;
+
+    --muted: 222 47% 11%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 222 47% 11%;
+    --accent-foreground: 213 31% 91%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 213 31% 91%;
+
+    --border: 222 47% 16%;
+    --input: 222 47% 16%;
+    --ring: 239 84% 67%;
+
+    --sentiment-positive: 152 60% 50%;
+    --sentiment-neutral:  215 16% 55%;
+    --sentiment-negative: 0 70% 60%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}

@@ -1,0 +1,64 @@
+# =============================================================================
+# RestoPulse — Scraper Config Template
+# =============================================================================
+# Copy this file to `config.yaml` (gitignored) and replace the placeholder URLs
+# with real Google Maps URLs for your 1-3 target restaurants.
+#
+# Each restaurant page on Google Maps has a URL like:
+#   https://www.google.com/maps/place/<Restaurant+Name>/@lat,lng,17z/data=!...
+# Short share links also work: https://maps.app.goo.gl/...
+#
+# Once edited:
+#   cd backend
+#   .venv\Scripts\activate
+#   python -m scraper.google_scraper --config scraper/config.yaml --out data/reviews_raw.csv
+# =============================================================================
+
+# Headless Chrome (no visible window). Set to false for first-run debugging.
+headless: true
+
+# Newest reviews first (gives us recent sentiment, matches dashboard trend chart)
+sort_by: "newest"
+
+# "update" = insert new + update changed; safe for repeat runs during dev
+scrape_mode: "update"
+
+# 0 = unlimited; set to e.g. 100 to cap per-restaurant during smoke tests
+max_reviews: 0
+
+# Stop early once we hit N consecutive scrolls with no new reviews
+stop_threshold: 3
+
+# Stay relative to the vendor folder (scrape.db lives inside vendor/)
+db_path: "scrape.db"
+
+# We don't use images in the dashboard — skip the download overhead
+download_images: false
+
+# Convert relative dates ("3 weeks ago") to ISO format
+convert_dates: true
+
+# We don't use Mongo/S3 — these defaults disable both
+use_mongodb: false
+
+# -----------------------------------------------------------------------------
+# Target restaurants
+# -----------------------------------------------------------------------------
+# Replace the URLs and company names below with your real targets.
+# `company` is what appears in our dashboard as the restaurant name.
+businesses:
+  - url: "PASTE_GOOGLE_MAPS_URL_FOR_RESTAURANT_1_HERE"
+    custom_params:
+      company: "Restaurant 1 Display Name"
+      source: "Google Maps"
+
+  # Uncomment to add more restaurants:
+  # - url: "PASTE_GOOGLE_MAPS_URL_FOR_RESTAURANT_2_HERE"
+  #   custom_params:
+  #     company: "Restaurant 2 Display Name"
+  #     source: "Google Maps"
+  #
+  # - url: "PASTE_GOOGLE_MAPS_URL_FOR_RESTAURANT_3_HERE"
+  #   custom_params:
+  #     company: "Restaurant 3 Display Name"
+  #     source: "Google Maps"

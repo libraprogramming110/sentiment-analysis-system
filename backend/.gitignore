@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+restopulse.db
+*.db-journal
+.pytest_cache/
+nltk_data/
+
+# Scraper integration (§14 of plan)
+scraper/vendor/
+scraper/.venv-scraper/
+scraper/config.yaml
+data/reviews_raw.csv
+data/*.tmp.csv
