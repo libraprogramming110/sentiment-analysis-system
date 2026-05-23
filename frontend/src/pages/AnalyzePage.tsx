@@ -47,7 +47,7 @@ export function AnalyzePage() {
             Live Analyze
           </CardTitle>
           <CardDescription>
-            Paste any restaurant review (English, Filipino, Cebuano, or Ilocano) to see the hybrid pipeline in action.
+            Paste any restaurant review — English, Filipino, Cebuano, Ilocano, or another language — to see the hybrid pipeline in action.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

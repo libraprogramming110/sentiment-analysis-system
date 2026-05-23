@@ -1,12 +1,11 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { aspectBreakdown as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { AspectIcon } from "@/components/widgets/AspectIcon"
 
 export function AspectBars() {
-  const { data } = useApi(api.aspects, { aspects: fallback }, [])
-  const rows = data.aspects.length ? data.aspects : fallback
+  const { data } = useApi(api.aspects, { aspects: [] }, [])
+  const rows = data.aspects
 
   return (
     <Card>
@@ -15,6 +14,9 @@ export function AspectBars() {
         <CardDescription>How customers feel about each part of the experience</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {rows.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">No aspect data yet.</p>
+        )}
         {rows.map((row) => {
           const total = (row.positive ?? 0) + (row.neutral ?? 0) + (row.negative ?? 0) || 1
           const pct = (n: number) => (n / total) * 100

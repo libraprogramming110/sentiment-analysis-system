@@ -1,12 +1,11 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { topKeywords as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
 import { TrendingUp } from "lucide-react"
 
 export function TopKeywords() {
-  const { data } = useApi(() => api.keywords(20), { keywords: fallback }, [])
-  const rows = data.keywords.length ? data.keywords : fallback
+  const { data } = useApi(() => api.keywords(20), { keywords: [] }, [])
+  const rows = data.keywords
 
   return (
     <Card>
@@ -18,6 +17,9 @@ export function TopKeywords() {
         <CardDescription>Most-mentioned words across reviews this period</CardDescription>
       </CardHeader>
       <CardContent>
+        {rows.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">No keyword data yet.</p>
+        )}
         <div className="flex flex-wrap gap-2">
           {rows.map((k, i) => {
             const fontSize = 13 + Math.min(8, Math.floor(k.count / 12))

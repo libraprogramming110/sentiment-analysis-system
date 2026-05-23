@@ -15,11 +15,11 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import date
+from datetime import date, datetime
 
 from flask import Blueprint, jsonify, request
 
-from db.repo import insert_review, upsert_restaurant
+from db.repo import insert_review, review_text_exists, upsert_restaurant
 from nlp import keywords as kw_mod
 from nlp.pipeline import process_review
 
@@ -46,6 +46,26 @@ def _int(v: str) -> int | None:
         return int(round(float(v)))
     except (TypeError, ValueError):
         return None
+
+
+# Date formats we accept in uploads → all normalized to ISO YYYY-MM-DD so SQLite's
+# date functions (used by the trend chart) can parse them. Excel commonly rewrites
+# ISO dates into M/D/YYYY, so we accept those too.
+_DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%Y/%m/%d", "%m-%d-%Y")
+
+
+def _normalize_date(s: str) -> str | None:
+    """Parse a date string in a few common formats → ISO 'YYYY-MM-DD'.
+    Returns None if it can't be parsed (caller falls back to today)."""
+    s = (s or "").strip()
+    if not s:
+        return None
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(s, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
 
 
 @bp.post("/upload")
@@ -80,9 +100,11 @@ def upload():
     today = date.today().isoformat()
     processed: list[dict] = []
     texts: list[str] = []
+    seen: set[tuple[int, str]] = set()  # (restaurant_id, text) already handled this batch
     skipped = 0
     failed = 0
     errors: list[str] = []
+    any_text_rows = False  # did any row have usable review text at all?
 
     # ---- Pass 1: pipeline per row, collect texts for TF-IDF ----
     for i, row in enumerate(rows, 1):
@@ -90,6 +112,21 @@ def upload():
         if not text:
             skipped += 1
             continue
+        any_text_rows = True
+
+        # Resolve the restaurant first (cheap) so we can dedup BEFORE the costly LLM call.
+        rest_name = _pick(row, _RESTAURANT_KEYS) or dataset_name
+        rest_city = _pick(row, ("city",)) or None
+        rest_id = upsert_restaurant(name=rest_name, external_id=None, city=rest_city, source_url=None)
+
+        # Idempotency: skip exact re-adds (same restaurant + same review text), whether
+        # the duplicate is already in the DB or earlier in this same file.
+        key = (rest_id, text)
+        if key in seen or review_text_exists(rest_id, text):
+            skipped += 1
+            continue
+        seen.add(key)
+
         try:
             result = process_review(text)
         except RuntimeError as e:
@@ -101,9 +138,6 @@ def upload():
                 errors.append(f"Row {i}: {e}")
             continue
 
-        rest_name = _pick(row, _RESTAURANT_KEYS) or dataset_name
-        rest_id = upsert_restaurant(name=rest_name, external_id=None, city=None, source_url=None)
-
         processed.append({
             "row": row,
             "result": result,
@@ -113,12 +147,25 @@ def upload():
         texts.append(text)
 
     if not processed:
+        # No genuine review text anywhere → real user error (400).
+        if not any_text_rows:
+            return jsonify({
+                "error": "No valid reviews found. Ensure a 'review_text' column with non-empty text.",
+                "skipped": skipped,
+                "failed": failed,
+                "errors": errors,
+            }), 400
+        # There WERE text rows, but all were duplicates (or failed) → success, nothing new.
+        from db.repo import get_db
+        new_total = get_db().execute("SELECT COUNT(*) AS n FROM reviews").fetchone()["n"]
         return jsonify({
-            "error": "No valid reviews found. Ensure a 'review_text' column with non-empty text.",
+            "inserted": 0,
             "skipped": skipped,
             "failed": failed,
+            "restaurants_created": 0,
+            "new_total": new_total,
             "errors": errors,
-        }), 400
+        })
 
     # ---- Pass 2: corpus TF-IDF over the uploaded batch, then write ----
     tfidf = kw_mod.extract_corpus_keywords(texts, top_n_per_doc=6) if texts else []
@@ -145,7 +192,7 @@ def upload():
             "vader_sentiment":   result.get("vader_sentiment"),
             "vader_score":       result.get("vader_score"),
             "llm_raw_response":  result["llm_raw_response"],
-            "date_added":        _pick(row, _DATE_KEYS) or today,
+            "date_added":        _normalize_date(_pick(row, _DATE_KEYS)) or today,
             "source":            _pick(row, ("source",)) or "Manual Upload",
             "aspects":           result["aspects"],
             "keywords":          merged_kw,

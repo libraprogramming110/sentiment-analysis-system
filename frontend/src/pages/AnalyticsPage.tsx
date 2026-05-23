@@ -1,11 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import {
-  aspectBreakdown as fbAspects,
-  topKeywords as fbKeywords,
-  reviews as fbReviews,
-} from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
 import { AspectIcon } from "@/components/widgets/AspectIcon"
 import { BarChart3 } from "lucide-react"
@@ -13,6 +8,12 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ScatterChart, Scatter, ZAxis
 } from "recharts"
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <Card className="p-12 text-center text-sm text-muted-foreground">{label}</Card>
+  )
+}
 
 // Net-sentiment → 0..100 health score. Maps [-1,1] to [0,100]; always clamped.
 function healthScore(positive: number, neutral: number, negative: number): number {
@@ -22,14 +23,14 @@ function healthScore(positive: number, neutral: number, negative: number): numbe
 }
 
 export function AnalyticsPage() {
-  const { data: aspectsResp } = useApi(api.aspects, { aspects: fbAspects }, [])
-  const aspectBreakdown = aspectsResp.aspects.length ? aspectsResp.aspects : fbAspects
+  const { data: aspectsResp } = useApi(api.aspects, { aspects: [] }, [])
+  const aspectBreakdown = aspectsResp.aspects
 
-  const { data: kwResp } = useApi(() => api.keywords(40), { keywords: fbKeywords }, [])
-  const topKeywords = kwResp.keywords.length ? kwResp.keywords : fbKeywords
+  const { data: kwResp } = useApi(() => api.keywords(40), { keywords: [] }, [])
+  const topKeywords = kwResp.keywords
 
   const { data: revResp } = useApi(() => api.reviews({ limit: 400 }), { reviews: [], total: 0 }, [])
-  const reviewsData = revResp.reviews.length ? revResp.reviews : (fbReviews as unknown as typeof revResp.reviews)
+  const reviewsData = revResp.reviews
 
   const radarData = aspectBreakdown.map((row) => ({
     aspect: row.aspect,
@@ -56,6 +57,9 @@ export function AnalyticsPage() {
 
       {/* Aspect Performance */}
       <TabsContent value="aspects" className="space-y-4">
+        {aspectBreakdown.length === 0 && <EmptyState label="No aspect data yet." />}
+        {aspectBreakdown.length > 0 && (
+        <>
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -124,10 +128,15 @@ export function AnalyticsPage() {
             )
           })}
         </div>
+        </>
+        )}
       </TabsContent>
 
       {/* Keywords */}
       <TabsContent value="keywords" className="space-y-4">
+        {topKeywords.length === 0 && <EmptyState label="No keyword data yet." />}
+        {topKeywords.length > 0 && (
+        <>
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
@@ -192,6 +201,8 @@ export function AnalyticsPage() {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
       </TabsContent>
 
       {/* Rating vs Sentiment */}

@@ -1,29 +1,17 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { languageBreakdown as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
+import { langLabelWithCode, langColor } from "@/lib/languages"
 import { Languages } from "lucide-react"
-
-const langLabels: Record<string, string> = {
-  en: "English (en)", tl: "Filipino (tl)", ceb: "Cebuano (ceb)", ilo: "Ilocano (ilo)",
-}
-const langColors: Record<string, string> = {
-  tl: "hsl(var(--brand))",
-  en: "hsl(var(--brand-accent))",
-  ceb: "hsl(280 80% 60%)",
-  ilo: "hsl(40 90% 55%)",
-}
 
 export function LanguageBreakdown() {
   const { data } = useApi(api.languages, { languages: [] }, [])
 
-  // map backend rows {lang, count} → display rows; fallback keeps colors & nice labels
-  const rows = data.languages.length
-    ? data.languages.map((l) => ({
-        lang:  langLabels[l.lang] ?? l.lang,
-        count: l.count,
-        color: langColors[l.lang] ?? "hsl(var(--muted-foreground))",
-      }))
-    : fallback
+  // map backend rows {lang, count} → display rows (friendly label + stable color)
+  const rows = data.languages.map((l) => ({
+    lang:  langLabelWithCode(l.lang),
+    count: l.count,
+    color: langColor(l.lang),
+  }))
 
   const total = rows.reduce((s, l) => s + l.count, 0) || 1
 
@@ -37,6 +25,9 @@ export function LanguageBreakdown() {
         <CardDescription>Multilingual NLP coverage</CardDescription>
       </CardHeader>
       <CardContent>
+        {rows.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">No language data yet.</p>
+        )}
         <div className="mb-4 flex h-2 w-full overflow-hidden rounded-full bg-muted">
           {rows.map((l) => (
             <div key={l.lang} style={{ width: `${(l.count / total) * 100}%`, background: l.color }} />

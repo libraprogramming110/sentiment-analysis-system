@@ -1,10 +1,9 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { summary as fallbackSummary } from "@/lib/mockData"
-import { api, useApi } from "@/lib/api"
+import { api, useApi, EMPTY_SUMMARY } from "@/lib/api"
 
 export function SentimentDonut() {
-  const { data: summary } = useApi(api.summary, fallbackSummary, [])
+  const { data: summary } = useApi(api.summary, EMPTY_SUMMARY, [])
 
   const total = summary.total || 1
   const distribution = [

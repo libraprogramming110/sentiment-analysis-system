@@ -3,7 +3,7 @@
  *
  * - Uses a relative "/api" base by default (same origin); VITE_API_BASE can override
  * - One thin fetch helper, one typed function per endpoint
- * - Throws on non-2xx so callers can do try/catch and fall back to mockData
+ * - Throws on non-2xx so callers can do try/catch and fall back to an empty/zero state
  */
 import type { Aspect, Language, Sentiment } from "./mockData"
 
@@ -42,6 +42,12 @@ export interface SummaryResponse {
   neutral: number
   negative: number
   avgRating: number
+}
+
+/** Zeroed summary — used as a neutral fallback while loading or on error
+ *  (never fabricated numbers). */
+export const EMPTY_SUMMARY: SummaryResponse = {
+  total: 0, positive: 0, neutral: 0, negative: 0, avgRating: 0,
 }
 
 export interface TrendPoint { day: string; positive: number; neutral: number; negative: number }

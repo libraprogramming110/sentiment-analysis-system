@@ -6,11 +6,10 @@ import { TrendChart } from "@/components/widgets/TrendChart"
 import { TopKeywords } from "@/components/widgets/TopKeywords"
 import { TopIssues } from "@/components/widgets/TopIssues"
 import { LanguageBreakdown } from "@/components/widgets/LanguageBreakdown"
-import { summary as fallbackSummary } from "@/lib/mockData"
-import { api, useApi } from "@/lib/api"
+import { api, useApi, EMPTY_SUMMARY } from "@/lib/api"
 
 export function DashboardPage() {
-  const { data: summary, loading } = useApi(api.summary, fallbackSummary, [])
+  const { data: summary, loading } = useApi(api.summary, EMPTY_SUMMARY, [])
   const total = summary.total || 1
   const positivePct = Math.round((summary.positive / total) * 100)
   const negativePct = Math.round((summary.negative / total) * 100)

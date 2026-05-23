@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils"
 // the Bayesian-adjusted score shrinks toward the global average.
 const CREDIBILITY_M = 20
 const SMALL_SAMPLE_THRESHOLD = 15
-const CITY_ORDER = ["Cagayan de Oro", "Iligan City", "Marawi City"]
+// Original scraped cities sort first; any uploaded cities follow alphabetically.
+const KNOWN_CITY_ORDER = ["Cagayan de Oro", "Iligan City", "Marawi City"]
 
 function rawHealth(r: RestaurantRow): number {
   const total = r.positive + r.neutral + r.negative || 1
@@ -51,7 +52,15 @@ export function ComparePage() {
   const visible = cityFilter === "all" ? all : all.filter((r) => r.city === cityFilter)
   const ranked = [...visible].sort((a, b) => adjusted(b) - adjusted(a))
 
-  const cities = CITY_ORDER.map((city) => {
+  // Cities present in the data: known scraped ones first, then any uploaded ones.
+  const cityNames = useMemo(() => {
+    const present = [...new Set(all.map((r) => r.city).filter(Boolean))] as string[]
+    const known = KNOWN_CITY_ORDER.filter((c) => present.includes(c))
+    const extra = present.filter((c) => !KNOWN_CITY_ORDER.includes(c)).sort()
+    return [...known, ...extra]
+  }, [all])
+
+  const cities = cityNames.map((city) => {
     const group = all.filter((r) => r.city === city)
     const totals = group.reduce(
       (acc, r) => ({
@@ -82,7 +91,7 @@ export function ComparePage() {
     return <Card className="p-12 text-center text-sm text-muted-foreground">Loading restaurants…</Card>
   }
 
-  const filterTabs = ["all", ...CITY_ORDER]
+  const filterTabs = ["all", ...cityNames]
 
   return (
     <div className="space-y-6">
@@ -109,7 +118,7 @@ export function ComparePage() {
         </span>
       </div>
 
-      {/* City summary (always all 3 for context) */}
+      {/* City summary cards — one per city present in the data */}
       <div className="grid gap-4 sm:grid-cols-3">
         {cities.map((c) => (
           <Card
@@ -149,7 +158,7 @@ export function ComparePage() {
           <CardTitle className="text-base">Positive Sentiment by Restaurant</CardTitle>
           <CardDescription>
             Ranked by credibility-adjusted score
-            {cityFilter !== "all" ? ` · ${cityFilter}` : " · all 3 cities"}
+            {cityFilter !== "all" ? ` · ${cityFilter}` : ` · all ${cityNames.length} cities`}
           </CardDescription>
         </CardHeader>
         <CardContent>

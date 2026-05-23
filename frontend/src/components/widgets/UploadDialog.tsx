@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api, type UploadResponse } from "@/lib/api"
 
-const TEMPLATE_CSV = `review_text,rating,author,date,restaurant_name
-"The adobo was amazing but the service was a bit slow.",4,Juan Dela Cruz,2026-05-01,Lola's Kitchen
-"Sobrang init sa loob and ang mahal ng pagkain.",2,Maria Santos,2026-05-03,Lola's Kitchen
-"Best lechon in town, super friendly staff!",5,Pedro Reyes,2026-05-10,Lola's Kitchen
+const TEMPLATE_CSV = `review_text,rating,author,date,restaurant_name,city
+"The adobo was amazing but the service was a bit slow.",4,Juan Dela Cruz,2026-05-01,Lola's Kitchen,Cagayan de Oro
+"Sobrang init sa loob and ang mahal ng pagkain.",2,Maria Santos,2026-05-03,Lola's Kitchen,Cagayan de Oro
+"Best lechon in town, super friendly staff!",5,Pedro Reyes,2026-05-10,Lola's Kitchen,Cagayan de Oro
 `
 
 function downloadTemplate() {
@@ -78,7 +78,7 @@ export function UploadDialog({ onUploaded }: { onUploaded: () => void }) {
               <p>
                 Required column: <code className="font-medium text-foreground">review_text</code>.
                 Optional: <code>rating</code>, <code>author</code>, <code>date</code>,{" "}
-                <code>restaurant_name</code>. Max <span className="font-medium text-foreground">30</span> rows.
+                <code>restaurant_name</code>, <code>city</code>. Max <span className="font-medium text-foreground">30</span> rows.
               </p>
               <button
                 type="button"
