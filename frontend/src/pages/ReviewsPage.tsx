@@ -9,6 +9,7 @@ import { type Sentiment, type Aspect, type Language } from "@/lib/mockData"
 import { api, useApi, type ApiReview } from "@/lib/api"
 import { ChevronDown, ChevronLeft, ChevronRight, Search, Star, Store } from "lucide-react"
 import { AspectIcon } from "@/components/widgets/AspectIcon"
+import { UploadDialog } from "@/components/widgets/UploadDialog"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 15
@@ -25,9 +26,11 @@ export function ReviewsPage() {
   const [lang, setLang] = useState<Language | "all">("all")
   const [restaurantId, setRestaurantId] = useState<number | "all">("all")
   const [expanded, setExpanded] = useState<number | null>(null)
+  // Bumped after a successful CSV upload to force the lists below to refetch.
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Restaurant list for the filter dropdown (grouped by city below).
-  const { data: restoData } = useApi(api.restaurants, { restaurants: [] }, [])
+  const { data: restoData } = useApi(api.restaurants, { restaurants: [] }, [refreshKey])
   const restaurants = restoData.restaurants.filter((r) => r.reviews > 0)
 
   // Server-side filtering via the typed client. Empty fallback (not mock data)
@@ -35,7 +38,7 @@ export function ReviewsPage() {
   const { data, loading, error } = useApi(
     () => api.reviews({ sentiment, aspect, lang, q: q || undefined, restaurantId, limit: 500 }),
     EMPTY,
-    [sentiment, aspect, lang, q, restaurantId],
+    [sentiment, aspect, lang, q, restaurantId, refreshKey],
   )
 
   const filtered = data.reviews
@@ -56,7 +59,13 @@ export function ReviewsPage() {
       if (!m.has(c)) m.set(c, [])
       m.get(c)!.push(r)
     }
-    return [...m.entries()]
+    // Keep cities alphabetical, but always push the "Other" group (no city,
+    // e.g. uploaded restaurants) to the bottom.
+    return [...m.entries()].sort(([a], [b]) => {
+      if (a === "Other") return 1
+      if (b === "Other") return -1
+      return a.localeCompare(b)
+    })
   }, [restaurants])
 
   const anyFilter = sentiment !== "all" || aspect !== "all" || lang !== "all" || restaurantId !== "all" || !!q
@@ -126,6 +135,7 @@ export function ReviewsPage() {
                 <SelectItem value="ilo">Ilocano</SelectItem>
               </SelectContent>
             </Select>
+            <UploadDialog onUploaded={() => setRefreshKey((k) => k + 1)} />
           </div>
         </div>
       </Card>

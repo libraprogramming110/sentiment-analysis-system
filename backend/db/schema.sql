@@ -53,3 +53,12 @@ CREATE TABLE IF NOT EXISTS keywords (
 );
 
 CREATE INDEX IF NOT EXISTS idx_keywords_word ON keywords(keyword);
+
+-- App users (charter §System Design). Passwords stored hashed, never plain text.
+CREATE TABLE IF NOT EXISTS users (
+    user_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT DEFAULT 'owner',
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -5,9 +5,12 @@ import {
   BarChart3,
   GitCompareArrows,
   Sparkles,
+  LogOut,
 } from "lucide-react"
 import { Logo } from "@/components/brand/Logo"
 import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
 const nav = [
@@ -51,23 +54,27 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <WorkspaceChip />
+      <UserChip />
     </aside>
   )
 }
 
-function WorkspaceChip() {
+function UserChip() {
+  const { user, logout } = useAuth()
   return (
-    <div className="m-3 mt-0 rounded-lg border bg-muted/40 p-3">
+    <div className="m-3 mt-0 space-y-2 rounded-lg border bg-muted/40 p-3">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-accent text-xs font-semibold text-white">
-          RP
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-accent text-xs font-semibold uppercase text-white">
+          {(user?.username ?? "?").slice(0, 2)}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-foreground">ISY 109</p>
-          <p className="truncate text-[10px] text-muted-foreground">Project Management</p>
+          <p className="truncate text-xs font-medium text-foreground">{user?.username ?? "Guest"}</p>
+          <p className="truncate text-[10px] capitalize text-muted-foreground">{user?.role ?? ""}</p>
         </div>
       </div>
+      <Button variant="outline" size="sm" className="w-full gap-2" onClick={() => logout()}>
+        <LogOut className="h-3.5 w-3.5" /> Log out
+      </Button>
     </div>
   )
 }
