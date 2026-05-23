@@ -9,4 +9,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // Build straight into the backend so Flask can serve the SPA (single-origin deploy).
+    outDir: '../backend/webdist',
+    emptyOutDir: true,
+  },
 })

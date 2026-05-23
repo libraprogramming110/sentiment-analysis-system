@@ -7,7 +7,9 @@
  */
 import type { Aspect, Language, Sentiment } from "./mockData"
 
-const BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:5000"
+// In production the SPA is served by Flask on the same origin, so call "/api/..."
+// relatively. In dev, hit the local Flask server. An explicit VITE_API_BASE wins either way.
+const BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.PROD ? "" : "http://127.0.0.1:5000")
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: { Accept: "application/json" } })

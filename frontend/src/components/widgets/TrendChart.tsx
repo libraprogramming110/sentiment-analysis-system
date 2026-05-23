@@ -53,11 +53,12 @@ export function TrendChart() {
               <XAxis dataKey="day" tickFormatter={formatTick} interval={0} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
               <Tooltip
-                labelFormatter={(d: string) =>
-                  /^\d{4}-\d{2}$/.test(String(d))
-                    ? new Date(`${d}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-                    : d
-                }
+                labelFormatter={(d) => {
+                  const s = String(d)
+                  return /^\d{4}-\d{2}$/.test(s)
+                    ? new Date(`${s}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                    : s
+                }}
                 contentStyle={{
                   background: "hsl(var(--popover))",
                   border: "1px solid hsl(var(--border))",
