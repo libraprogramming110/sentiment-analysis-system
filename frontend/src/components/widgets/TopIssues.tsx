@@ -1,12 +1,11 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { topIssues as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
 import { AlertTriangle } from "lucide-react"
 
 export function TopIssues() {
-  const { data } = useApi(api.issues, { issues: fallback }, [])
-  const rows = data.issues.length ? data.issues : fallback
+  const { data } = useApi(api.issues, { issues: [] }, [])
+  const rows = data.issues
 
   return (
     <Card className="border-sentiment-negative/20 bg-sentiment-negative/[0.02]">
@@ -20,6 +19,9 @@ export function TopIssues() {
         <CardDescription>Auto-summarized concerns that need attention</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
+        {rows.length === 0 && (
+          <p className="py-4 text-center text-sm text-muted-foreground">No issues detected yet.</p>
+        )}
         {rows.map((issue, i) => (
           <div
             key={issue.issue}

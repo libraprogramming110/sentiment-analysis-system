@@ -1,16 +1,17 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { trend as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts"
 
 export function TrendChart() {
-  const { data } = useApi(api.trend, { trend: fallback }, [])
-  const rows = data.trend.length ? data.trend : fallback
+  const { data } = useApi(api.trend, { trend: [] }, [])
+  // Drop any point with a missing/blank day (e.g. reviews whose date couldn't be
+  // parsed) — a stray null otherwise breaks the monthly-axis detection below.
+  const rows = data.trend.filter((r) => r.day)
 
   // The API returns one point per month ("2026-05"). Keep that monthly resolution in
   // the line, but label the x-axis by YEAR only (at the first month of each year) so
   // the axis isn't cramped. Falls back to per-day labels for non-monthly data.
-  const isMonthly = rows.length > 0 && /^\d{4}-\d{2}$/.test(rows[0].day)
+  const isMonthly = rows.length > 0 && rows.every((r) => /^\d{4}-\d{2}$/.test(r.day))
   const yearTick: Record<string, string> = {}
   if (isMonthly) {
     const seen = new Set<string>()
@@ -32,6 +33,11 @@ export function TrendChart() {
         <CardDescription>Volume of reviews per sentiment, by month</CardDescription>
       </CardHeader>
       <CardContent>
+        {rows.length === 0 ? (
+          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+            No trend data yet.
+          </div>
+        ) : (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={rows} margin={{ top: 10, right: 8, left: -16, bottom: 0 }}>
@@ -73,6 +79,7 @@ export function TrendChart() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+        )}
       </CardContent>
     </Card>
   )

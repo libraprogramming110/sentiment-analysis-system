@@ -159,6 +159,7 @@ def fetch_trend() -> list[dict[str, Any]]:
         FROM reviews
         WHERE date_added IS NOT NULL AND date_added <> ''
         GROUP BY day
+        HAVING day IS NOT NULL          -- drop unparseable dates (no phantom bucket)
         ORDER BY day
         """
     ).fetchall()
@@ -400,6 +401,16 @@ def create_user(username: str, password_hash: str, role: str = "owner") -> int:
 
 def count_users() -> int:
     return get_db().execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
+
+
+def review_text_exists(restaurant_id: int, text: str) -> bool:
+    """True if a review with the same text already exists for this restaurant.
+    Used to make CSV uploads idempotent (skip exact re-adds)."""
+    row = get_db().execute(
+        "SELECT 1 FROM reviews WHERE restaurant_id = ? AND original_text = ? LIMIT 1",
+        (restaurant_id, text),
+    ).fetchone()
+    return row is not None
 
 
 def review_exists(external_id: str) -> bool:

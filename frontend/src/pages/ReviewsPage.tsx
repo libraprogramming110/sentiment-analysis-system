@@ -10,12 +10,12 @@ import { api, useApi, type ApiReview } from "@/lib/api"
 import { ChevronDown, ChevronLeft, ChevronRight, Search, Star, Store } from "lucide-react"
 import { AspectIcon } from "@/components/widgets/AspectIcon"
 import { UploadDialog } from "@/components/widgets/UploadDialog"
+import { langLabel } from "@/lib/languages"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 15
 
 const sentimentLabel: Record<Sentiment, string> = { positive: "Positive", neutral: "Neutral", negative: "Negative" }
-const langLabel: Record<string, string> = { en: "English", tl: "Filipino", ceb: "Cebuano", ilo: "Ilocano" }
 
 const EMPTY: { reviews: ApiReview[]; total: number } = { reviews: [], total: 0 }
 
@@ -32,6 +32,10 @@ export function ReviewsPage() {
   // Restaurant list for the filter dropdown (grouped by city below).
   const { data: restoData } = useApi(api.restaurants, { restaurants: [] }, [refreshKey])
   const restaurants = restoData.restaurants.filter((r) => r.reviews > 0)
+
+  // Languages present in the data → drives the language filter (adapts to uploads).
+  const { data: langData } = useApi(api.languages, { languages: [] }, [refreshKey])
+  const languageCodes = langData.languages.map((l) => l.lang).filter(Boolean)
 
   // Server-side filtering via the typed client. Empty fallback (not mock data)
   // so the page shows a skeleton while loading instead of flashing fake reviews.
@@ -129,10 +133,9 @@ export function ReviewsPage() {
               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All languages</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="tl">Filipino</SelectItem>
-                <SelectItem value="ceb">Cebuano</SelectItem>
-                <SelectItem value="ilo">Ilocano</SelectItem>
+                {languageCodes.map((code) => (
+                  <SelectItem key={code} value={code}>{langLabel(code)}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <UploadDialog onUploaded={() => setRefreshKey((k) => k + 1)} />
@@ -207,7 +210,7 @@ export function ReviewsPage() {
                         ))}
                       </span>
                       <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]">
-                        {langLabel[r.language] ?? r.language}
+                        {langLabel(r.language)}
                       </Badge>
                       <Badge
                         variant={r.overall === "positive" ? "positive" : r.overall === "negative" ? "negative" : "neutral"}
