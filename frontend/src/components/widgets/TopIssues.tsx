@@ -2,7 +2,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { topIssues as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
-import { AlertTriangle, ChevronRight } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 
 export function TopIssues() {
   const { data } = useApi(api.issues, { issues: fallback }, [])
@@ -23,7 +23,7 @@ export function TopIssues() {
         {rows.map((issue, i) => (
           <div
             key={issue.issue}
-            className="group flex items-center gap-3 rounded-md border bg-background p-3 transition-colors hover:bg-muted/50"
+            className="flex items-center gap-3 rounded-md border bg-background p-3"
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sentiment-negative/15 text-xs font-semibold text-sentiment-negative">
               {i + 1}
@@ -37,7 +37,6 @@ export function TopIssues() {
                 <span>{issue.mentions} mentions</span>
               </div>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
           </div>
         ))}
       </CardContent>

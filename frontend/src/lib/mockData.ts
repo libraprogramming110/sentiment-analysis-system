@@ -11,8 +11,6 @@ export const summary = {
   neutral: 62,
   negative: 51,
   avgRating: 4.2,
-  positiveDelta: +6.4,
-  negativeDelta: -2.1,
 }
 
 export const sentimentDistribution = [

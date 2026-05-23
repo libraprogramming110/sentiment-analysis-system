@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import sqlite3
 from collections import Counter, defaultdict
-from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -58,10 +57,45 @@ def init_app(app) -> None:
 # ---------------------------------------------------------------------------
 # Read helpers (dashboard / analytics)
 # ---------------------------------------------------------------------------
-def fetch_summary() -> dict[str, Any]:
+def fetch_restaurants() -> list[dict[str, Any]]:
+    """List restaurants with per-restaurant review counts + avg rating, for the
+    restaurant/city filter and the comparison view."""
     db = get_db()
-    row = db.execute(
+    rows = db.execute(
         """
+        SELECT r.restaurant_id, r.name, r.city,
+               COUNT(rv.review_id)               AS reviews,
+               COALESCE(ROUND(AVG(rv.rating),2),0) AS avg_rating,
+               SUM(CASE WHEN rv.overall_sentiment='positive' THEN 1 ELSE 0 END) AS positive,
+               SUM(CASE WHEN rv.overall_sentiment='neutral'  THEN 1 ELSE 0 END) AS neutral,
+               SUM(CASE WHEN rv.overall_sentiment='negative' THEN 1 ELSE 0 END) AS negative
+        FROM restaurants r
+        LEFT JOIN reviews rv ON rv.restaurant_id = r.restaurant_id
+        GROUP BY r.restaurant_id
+        ORDER BY r.city, r.name
+        """
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _scope_clause(restaurant_id: int | None, city: str | None) -> tuple[str, list[Any]]:
+    """Build an optional WHERE fragment to scope dashboard queries by restaurant
+    or city. Returns (clause, params) where clause starts with ' AND ...' or ''."""
+    clauses: list[str] = []
+    params: list[Any] = []
+    if restaurant_id:
+        clauses.append("restaurant_id = ?"); params.append(restaurant_id)
+    if city:
+        clauses.append("restaurant_id IN (SELECT restaurant_id FROM restaurants WHERE city = ?)")
+        params.append(city)
+    return ((" AND " + " AND ".join(clauses)) if clauses else ""), params
+
+
+def fetch_summary(restaurant_id: int | None = None, city: str | None = None) -> dict[str, Any]:
+    db = get_db()
+    scope, params = _scope_clause(restaurant_id, city)
+    row = db.execute(
+        f"""
         SELECT
           COUNT(*)                                                       AS total,
           SUM(CASE WHEN overall_sentiment='positive' THEN 1 ELSE 0 END)  AS positive,
@@ -69,7 +103,9 @@ def fetch_summary() -> dict[str, Any]:
           SUM(CASE WHEN overall_sentiment='negative' THEN 1 ELSE 0 END)  AS negative,
           COALESCE(ROUND(AVG(rating), 2), 0)                             AS avg_rating
         FROM reviews
-        """
+        WHERE 1=1 {scope}
+        """,
+        params,
     ).fetchone()
     total = row["total"] or 0
     return {
@@ -78,28 +114,28 @@ def fetch_summary() -> dict[str, Any]:
         "neutral":        row["neutral"]  or 0,
         "negative":       row["negative"] or 0,
         "avgRating":      row["avg_rating"],
-        # Deltas need a previous period to compare against — placeholder for now.
-        "positiveDelta":  0.0,
-        "negativeDelta":  0.0,
     }
 
 
-def fetch_trend(days: int = 30) -> list[dict[str, Any]]:
-    """Sentiment volume per day for the last `days` days."""
+def fetch_trend() -> list[dict[str, Any]]:
+    """Sentiment volume per month across all reviews.
+
+    Review dates come from Google as relative labels ("a year ago") that the scraper
+    converts to approximate absolute dates, so we aggregate by month (YYYY-MM) rather
+    than by day — it covers the whole corpus and smooths the date approximation.
+    """
     db = get_db()
-    cutoff = (date.today() - timedelta(days=days)).isoformat()
     rows = db.execute(
         """
-        SELECT date_added                                                  AS day,
+        SELECT strftime('%Y-%m', date_added)                              AS day,
                SUM(CASE WHEN overall_sentiment='positive' THEN 1 ELSE 0 END) AS positive,
                SUM(CASE WHEN overall_sentiment='neutral'  THEN 1 ELSE 0 END) AS neutral,
                SUM(CASE WHEN overall_sentiment='negative' THEN 1 ELSE 0 END) AS negative
         FROM reviews
-        WHERE date_added >= ?
-        GROUP BY date_added
-        ORDER BY date_added
-        """,
-        (cutoff,),
+        WHERE date_added IS NOT NULL AND date_added <> ''
+        GROUP BY day
+        ORDER BY day
+        """
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -164,19 +200,32 @@ def fetch_languages() -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
+# Low-insight keywords filtered from the "Trending Keywords" widget: the aspect names
+# (already shown in the aspect breakdown) plus generic filler words. Excluding them
+# lets distinctive terms (delicious, sarap, friendly, accommodating, …) surface.
+_GENERIC_KEYWORDS = {
+    "food", "service", "ambiance", "price", "cleanliness",
+    "good", "great", "nice", "place", "restaurant", "experience",
+    "really", "very", "also", "one",
+}
+
+
 def fetch_top_keywords(limit: int = 20) -> list[dict[str, Any]]:
     """Aggregate keyword frequencies across the corpus and tag dominant sentiment."""
     db = get_db()
+    blocklist = sorted(_GENERIC_KEYWORDS)
+    placeholders = ",".join("?" * len(blocklist))
     rows = db.execute(
-        """
+        f"""
         SELECT k.keyword, SUM(k.frequency) AS count, r.overall_sentiment AS sentiment
         FROM keywords k
         JOIN reviews r ON r.review_id = k.review_id
+        WHERE lower(k.keyword) NOT IN ({placeholders})
         GROUP BY k.keyword
         ORDER BY count DESC
         LIMIT ?
         """,
-        (limit,),
+        (*blocklist, limit),
     ).fetchall()
     # Pick the dominant sentiment per keyword (simple majority)
     by_word: dict[str, dict[str, Any]] = {}
@@ -198,15 +247,18 @@ def fetch_reviews(
     aspect: str | None = None,
     lang: str | None = None,
     q: str | None = None,
+    restaurant_id: int | None = None,
     limit: int = 100,
 ) -> list[dict[str, Any]]:
     db = get_db()
     sql = [
         """
-        SELECT r.review_id, r.author, r.original_text, r.translated_text,
+        SELECT r.review_id, r.restaurant_id, r.author, r.original_text, r.translated_text,
                r.detected_language, r.rating, r.overall_sentiment, r.overall_score,
-               r.date_added, r.source
+               r.date_added, r.source,
+               rt.name AS restaurant_name, rt.city AS city
         FROM reviews r
+        LEFT JOIN restaurants rt ON rt.restaurant_id = r.restaurant_id
         """
     ]
     params: list[Any] = []
@@ -215,6 +267,8 @@ def fetch_reviews(
         where.append("r.overall_sentiment = ?"); params.append(sentiment)
     if lang:
         where.append("r.detected_language = ?"); params.append(lang)
+    if restaurant_id:
+        where.append("r.restaurant_id = ?"); params.append(restaurant_id)
     if q:
         where.append("(r.original_text LIKE ? OR COALESCE(r.translated_text,'') LIKE ?)")
         params.extend([f"%{q}%", f"%{q}%"])
@@ -247,6 +301,9 @@ def fetch_reviews(
     return [
         {
             "id":             r["review_id"],
+            "restaurantId":   r["restaurant_id"],
+            "restaurantName": r["restaurant_name"] or "Unknown",
+            "city":           r["city"],
             "author":         r["author"],
             "originalText":   r["original_text"],
             "translatedText": r["translated_text"],
@@ -263,18 +320,45 @@ def fetch_reviews(
 # ---------------------------------------------------------------------------
 # Write helpers (used by ingest pipeline in P3a)
 # ---------------------------------------------------------------------------
-def upsert_restaurant(name: str, source_url: str | None = None) -> int:
+def upsert_restaurant(
+    name: str,
+    external_id: str | None = None,
+    city: str | None = None,
+    source_url: str | None = None,
+) -> int:
     db = get_db()
-    cur = db.execute("SELECT restaurant_id FROM restaurants WHERE name = ?", (name,))
-    row = cur.fetchone()
+    # Prefer external_id (place_id) as the stable key; fall back to name.
+    if external_id:
+        row = db.execute(
+            "SELECT restaurant_id FROM restaurants WHERE external_id = ?", (external_id,)
+        ).fetchone()
+    else:
+        row = db.execute(
+            "SELECT restaurant_id FROM restaurants WHERE name = ?", (name,)
+        ).fetchone()
     if row:
+        # keep city/name fresh on re-ingest
+        db.execute(
+            "UPDATE restaurants SET name = ?, city = COALESCE(?, city), source_url = COALESCE(?, source_url) WHERE restaurant_id = ?",
+            (name, city, source_url, row["restaurant_id"]),
+        )
+        db.commit()
         return row["restaurant_id"]
     cur = db.execute(
-        "INSERT INTO restaurants(name, source_url) VALUES (?, ?)",
-        (name, source_url),
+        "INSERT INTO restaurants(name, external_id, city, source_url) VALUES (?, ?, ?, ?)",
+        (name, external_id, city, source_url),
     )
     db.commit()
     return cur.lastrowid
+
+
+def review_exists(external_id: str) -> bool:
+    if not external_id:
+        return False
+    row = get_db().execute(
+        "SELECT 1 FROM reviews WHERE external_id = ? LIMIT 1", (external_id,)
+    ).fetchone()
+    return row is not None
 
 
 def insert_review(review: dict[str, Any]) -> int:
@@ -282,13 +366,14 @@ def insert_review(review: dict[str, Any]) -> int:
     cur = db.execute(
         """
         INSERT INTO reviews(
-            restaurant_id, author, original_text, translated_text, detected_language,
-            rating, overall_sentiment, overall_score, vader_sentiment, vader_score,
-            llm_raw_response, date_added, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            restaurant_id, external_id, author, original_text, translated_text,
+            detected_language, rating, overall_sentiment, overall_score,
+            vader_sentiment, vader_score, llm_raw_response, date_added, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             review.get("restaurant_id"),
+            review.get("external_id"),
             review.get("author"),
             review["original_text"],
             review.get("translated_text"),

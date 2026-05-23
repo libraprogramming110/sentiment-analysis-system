@@ -1,38 +1,66 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { reviews as fallbackReviews, type Sentiment, type Aspect, type Language } from "@/lib/mockData"
+import { type Sentiment, type Aspect, type Language } from "@/lib/mockData"
 import { api, useApi, type ApiReview } from "@/lib/api"
-import { ChevronDown, Download, Filter, Search, Star } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Search, Star, Store } from "lucide-react"
+import { AspectIcon } from "@/components/widgets/AspectIcon"
 import { cn } from "@/lib/utils"
+
+const PAGE_SIZE = 15
 
 const sentimentLabel: Record<Sentiment, string> = { positive: "Positive", neutral: "Neutral", negative: "Negative" }
 const langLabel: Record<string, string> = { en: "English", tl: "Filipino", ceb: "Cebuano", ilo: "Ilocano" }
-const langFlag: Record<string, string>  = { en: "🇬🇧", tl: "🇵🇭", ceb: "🇵🇭", ilo: "🇵🇭" }
-const aspectIcon: Record<Aspect, string> = { food: "🍽️", service: "🛎️", ambiance: "🪴", price: "₱", cleanliness: "✨" }
+
+const EMPTY: { reviews: ApiReview[]; total: number } = { reviews: [], total: 0 }
 
 export function ReviewsPage() {
   const [q, setQ] = useState("")
   const [sentiment, setSentiment] = useState<Sentiment | "all">("all")
   const [aspect, setAspect] = useState<Aspect | "all">("all")
   const [lang, setLang] = useState<Language | "all">("all")
+  const [restaurantId, setRestaurantId] = useState<number | "all">("all")
   const [expanded, setExpanded] = useState<number | null>(null)
 
-  // Server-side filtering via the typed client.
-  const { data, loading } = useApi(
-    () => api.reviews({ sentiment, aspect, lang, q: q || undefined, limit: 200 }),
-    { reviews: fallbackReviews as unknown as ApiReview[], total: fallbackReviews.length },
-    [sentiment, aspect, lang, q],
+  // Restaurant list for the filter dropdown (grouped by city below).
+  const { data: restoData } = useApi(api.restaurants, { restaurants: [] }, [])
+  const restaurants = restoData.restaurants.filter((r) => r.reviews > 0)
+
+  // Server-side filtering via the typed client. Empty fallback (not mock data)
+  // so the page shows a skeleton while loading instead of flashing fake reviews.
+  const { data, loading, error } = useApi(
+    () => api.reviews({ sentiment, aspect, lang, q: q || undefined, restaurantId, limit: 500 }),
+    EMPTY,
+    [sentiment, aspect, lang, q, restaurantId],
   )
 
-  const filtered = useMemo(
-    () => (data.reviews.length || !loading ? data.reviews : (fallbackReviews as unknown as ApiReview[])),
-    [data, loading],
-  )
+  const filtered = data.reviews
+
+  // Pagination
+  const [page, setPage] = useState(1)
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  // Reset to page 1 whenever the filtered set changes (new filter/search).
+  useEffect(() => { setPage(1) }, [sentiment, aspect, lang, q, restaurantId])
+  const safePage = Math.min(page, pageCount)
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  // Group restaurants by city for the dropdown.
+  const byCity = useMemo(() => {
+    const m = new Map<string, typeof restaurants>()
+    for (const r of restaurants) {
+      const c = r.city ?? "Other"
+      if (!m.has(c)) m.set(c, [])
+      m.get(c)!.push(r)
+    }
+    return [...m.entries()]
+  }, [restaurants])
+
+  const anyFilter = sentiment !== "all" || aspect !== "all" || lang !== "all" || restaurantId !== "all" || !!q
+  const showSkeleton = loading && filtered.length === 0
 
   return (
     <div className="space-y-4">
@@ -49,6 +77,25 @@ export function ReviewsPage() {
             />
           </div>
           <div className="flex flex-wrap gap-2">
+            <Select
+              value={String(restaurantId)}
+              onValueChange={(v) => setRestaurantId(v === "all" ? "all" : Number(v))}
+            >
+              <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All restaurants</SelectItem>
+                {byCity.map(([city, list]) => (
+                  <SelectGroup key={city}>
+                    <SelectLabel>{city}</SelectLabel>
+                    {list.map((r) => (
+                      <SelectItem key={r.restaurant_id} value={String(r.restaurant_id)}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={sentiment} onValueChange={(v) => setSentiment(v as never)}>
               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -79,14 +126,6 @@ export function ReviewsPage() {
                 <SelectItem value="ilo">Ilocano</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Filter className="h-3.5 w-3.5" />
-              More
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </Button>
           </div>
         </div>
       </Card>
@@ -94,15 +133,48 @@ export function ReviewsPage() {
       {/* Results meta */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          Showing <span className="font-medium text-foreground">{filtered.length}</span> results
+          {anyFilter
+            ? <>Showing <span className="font-medium text-foreground">{filtered.length}</span> matching reviews</>
+            : <>Showing all <span className="font-medium text-foreground">{filtered.length}</span> reviews</>}
           {loading && <span className="ml-2 opacity-60">loading…</span>}
         </span>
-        <span>Sorted by date · newest first</span>
+        <span>
+          {filtered.length > 0 && (
+            <>Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} · newest first</>
+          )}
+        </span>
       </div>
+
+      {/* Loading skeleton — shown instead of mock data so there's no flash */}
+      {showSkeleton && (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 w-40 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-full animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {!loading && error && filtered.length === 0 && (
+        <Card className="p-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            Couldn't load reviews — is the backend running on port 5000?
+          </p>
+        </Card>
+      )}
 
       {/* Review list */}
       <div className="space-y-2">
-        {filtered.map((r) => {
+        {!showSkeleton && pageItems.map((r) => {
           const open = expanded === r.id
           return (
             <Card key={r.id} className="overflow-hidden transition-all hover:border-primary/30">
@@ -125,7 +197,6 @@ export function ReviewsPage() {
                         ))}
                       </span>
                       <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]">
-                        <span>{langFlag[r.language] ?? "🏳️"}</span>
                         {langLabel[r.language] ?? r.language}
                       </Badge>
                       <Badge
@@ -133,6 +204,11 @@ export function ReviewsPage() {
                         className="h-5 px-1.5 text-[10px]"
                       >
                         {sentimentLabel[r.overall]}
+                      </Badge>
+                      <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[10px] font-normal">
+                        <Store className="h-3 w-3" />
+                        {r.restaurantName}
+                        {r.city && <span className="opacity-60">· {r.city}</span>}
                       </Badge>
                       <span className="ml-auto text-xs text-muted-foreground">{r.date}</span>
                     </div>
@@ -154,7 +230,7 @@ export function ReviewsPage() {
                                 variant={a.sentiment === "positive" ? "positive" : a.sentiment === "negative" ? "negative" : "neutral"}
                                 className="h-5 cursor-help gap-1 px-1.5 text-[10px] capitalize"
                               >
-                                <span>{aspectIcon[a.aspect]}</span>
+                                <AspectIcon aspect={a.aspect} className="h-3 w-3 text-[10px]" />
                                 {a.aspect}
                               </Badge>
                             </TooltipTrigger>
@@ -184,7 +260,7 @@ export function ReviewsPage() {
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {r.aspects.map((a) => (
                       <div key={a.aspect} className="flex items-start gap-2 rounded-md border bg-background p-2.5">
-                        <span className="text-base leading-none">{aspectIcon[a.aspect]}</span>
+                        <AspectIcon aspect={a.aspect} className="h-4 w-4 text-base text-muted-foreground" />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-medium capitalize">{a.aspect}</span>
@@ -205,12 +281,65 @@ export function ReviewsPage() {
             </Card>
           )
         })}
-        {!loading && filtered.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <Card className="p-12 text-center">
             <p className="text-sm text-muted-foreground">No reviews match these filters.</p>
           </Card>
         )}
       </div>
+
+      {/* Pagination */}
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-xs text-muted-foreground">
+            Page <span className="font-medium text-foreground">{safePage}</span> of {pageCount}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline" size="sm" className="gap-1"
+              disabled={safePage <= 1}
+              onClick={() => { setExpanded(null); setPage((p) => Math.max(1, p - 1)) }}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" /> Prev
+            </Button>
+            {pageWindow(safePage, pageCount).map((p, i) =>
+              p === "…" ? (
+                <span key={`gap-${i}`} className="px-1.5 text-xs text-muted-foreground">…</span>
+              ) : (
+                <Button
+                  key={p}
+                  variant={p === safePage ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 w-8 p-0 tabular-nums"
+                  onClick={() => { setExpanded(null); setPage(p as number) }}
+                >
+                  {p}
+                </Button>
+              )
+            )}
+            <Button
+              variant="outline" size="sm" className="gap-1"
+              disabled={safePage >= pageCount}
+              onClick={() => { setExpanded(null); setPage((p) => Math.min(pageCount, p + 1)) }}
+            >
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+/** Compact page-number window with ellipses, e.g. [1, …, 4, 5, 6, …, 26]. */
+function pageWindow(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "…")[] = [1]
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  if (start > 2) pages.push("…")
+  for (let p = start; p <= end; p++) pages.push(p)
+  if (end < total - 1) pages.push("…")
+  pages.push(total)
+  return pages
 }

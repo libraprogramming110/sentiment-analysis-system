@@ -57,6 +57,26 @@ def _find_browser() -> str | None:
     return None
 
 
+def _build_url_city_map(config_path: Path) -> dict[str, str]:
+    """Parse config.yaml's businesses → {url: city} so the adapter can tag
+    each scraped place with the city we assigned it."""
+    import yaml  # local import; only needed here
+
+    try:
+        data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as e:
+        print(f"[scraper] warning: could not parse {config_path} for city map: {e}")
+        return {}
+
+    mapping: dict[str, str] = {}
+    for biz in data.get("businesses", []):
+        url = (biz.get("url") or "").strip()
+        city = (biz.get("custom_params", {}) or {}).get("city", "")
+        if url and city:
+            mapping[url] = city
+    return mapping
+
+
 def _check_prereqs() -> None:
     """Fail fast with a clear message if vendor folder or venv is missing."""
     missing = []
@@ -132,7 +152,8 @@ def scrape(config_path: Path, output_csv: Path) -> int:
             f"[scraper] vendor DB not found at {VENDOR_DB} — "
             "the scrape likely failed (check the log above)."
         )
-    rows = adapter.normalize_sqlite(VENDOR_DB, output_csv)
+    url_city_map = _build_url_city_map(config_path)
+    rows = adapter.normalize_sqlite(VENDOR_DB, output_csv, url_city_map=url_city_map)
     print(f"\n[scraper] wrote {rows} rows to {output_csv}")
     return rows
 

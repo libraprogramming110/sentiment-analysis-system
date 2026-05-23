@@ -1,33 +1,48 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { aspectBreakdown, pipelineComparison, topKeywords, reviews } from "@/lib/mockData"
+import {
+  aspectBreakdown as fbAspects,
+  topKeywords as fbKeywords,
+  reviews as fbReviews,
+} from "@/lib/mockData"
+import { api, useApi } from "@/lib/api"
+import { AspectIcon } from "@/components/widgets/AspectIcon"
+import { BarChart3 } from "lucide-react"
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ScatterChart, Scatter, ZAxis
 } from "recharts"
 
-const aspectIcon: Record<string, string> = { food: "🍽️", service: "🛎️", ambiance: "🪴", price: "₱", cleanliness: "✨" }
+// Net-sentiment → 0..100 health score. Maps [-1,1] to [0,100]; always clamped.
+function healthScore(positive: number, neutral: number, negative: number): number {
+  const total = positive + neutral + negative || 1
+  const net = (positive - negative) / total            // -1 .. 1
+  return Math.max(0, Math.min(100, Math.round(((net + 1) / 2) * 100)))
+}
 
 export function AnalyticsPage() {
-  const radarData = aspectBreakdown.map((row) => {
-    const total = row.positive + row.neutral + row.negative
-    return {
-      aspect: row.aspect,
-      score: Math.round(((row.positive - row.negative) / total) * 100 + 50),
-    }
-  })
+  const { data: aspectsResp } = useApi(api.aspects, { aspects: fbAspects }, [])
+  const aspectBreakdown = aspectsResp.aspects.length ? aspectsResp.aspects : fbAspects
 
-  const compareData = (Object.keys(pipelineComparison.hybrid) as (keyof typeof pipelineComparison.hybrid)[]).map((k) => ({
-    metric: k,
-    "VADER baseline": pipelineComparison.vader[k],
-    "Hybrid (LLM)": pipelineComparison.hybrid[k],
+  const { data: kwResp } = useApi(() => api.keywords(40), { keywords: fbKeywords }, [])
+  const topKeywords = kwResp.keywords.length ? kwResp.keywords : fbKeywords
+
+  const { data: revResp } = useApi(() => api.reviews({ limit: 400 }), { reviews: [], total: 0 }, [])
+  const reviewsData = revResp.reviews.length ? revResp.reviews : (fbReviews as unknown as typeof revResp.reviews)
+
+  const radarData = aspectBreakdown.map((row) => ({
+    aspect: row.aspect,
+    score: healthScore(row.positive, row.neutral, row.negative),
   }))
 
-  const ratingScatter = reviews.map((r) => ({
+  const posMax = Math.max(1, ...topKeywords.filter((k) => k.sentiment === "positive").map((k) => k.count))
+  const negMax = Math.max(1, ...topKeywords.filter((k) => k.sentiment === "negative").map((k) => k.count))
+
+  const ratingScatter = reviewsData.map((r) => ({
     rating: r.rating,
     sentimentScore: r.overall === "positive" ? 1 : r.overall === "neutral" ? 0 : -1,
-    z: r.aspects.length * 60,
+    z: ((r.aspects?.length ?? 1) * 60),
   }))
 
   return (
@@ -88,13 +103,13 @@ export function AnalyticsPage() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {aspectBreakdown.map((row) => {
-            const total = row.positive + row.neutral + row.negative
-            const score = Math.round(((row.positive - row.negative) / total) * 100 + 50)
+            const total = row.positive + row.neutral + row.negative || 1
+            const score = healthScore(row.positive, row.neutral, row.negative)
             return (
               <Card key={row.aspect} className="overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl">{aspectIcon[row.aspect]}</span>
+                    <AspectIcon aspect={row.aspect} className="h-6 w-6 text-2xl text-muted-foreground" />
                     <Badge variant={score >= 70 ? "positive" : score >= 50 ? "neutral" : "negative"}>{score}/100</Badge>
                   </div>
                   <p className="mt-3 text-sm font-medium capitalize">{row.aspect}</p>
@@ -120,11 +135,11 @@ export function AnalyticsPage() {
               <CardDescription>Most-mentioned praise terms</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {topKeywords.filter((k) => k.sentiment === "positive").map((k) => (
+              {topKeywords.filter((k) => k.sentiment === "positive").slice(0, 8).map((k) => (
                 <div key={k.word} className="flex items-center gap-3">
                   <span className="w-24 truncate text-sm font-medium">{k.word}</span>
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-sentiment-positive" style={{ width: `${(k.count / 84) * 100}%` }} />
+                    <div className="h-full rounded-full bg-sentiment-positive" style={{ width: `${(k.count / posMax) * 100}%` }} />
                   </div>
                   <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{k.count}</span>
                 </div>
@@ -138,11 +153,11 @@ export function AnalyticsPage() {
               <CardDescription>Most-mentioned complaint terms</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {topKeywords.filter((k) => k.sentiment === "negative").map((k) => (
+              {topKeywords.filter((k) => k.sentiment === "negative").slice(0, 8).map((k) => (
                 <div key={k.word} className="flex items-center gap-3">
                   <span className="w-24 truncate text-sm font-medium">{k.word}</span>
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-sentiment-negative" style={{ width: `${(k.count / 47) * 100}%` }} />
+                    <div className="h-full rounded-full bg-sentiment-negative" style={{ width: `${(k.count / negMax) * 100}%` }} />
                   </div>
                   <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{k.count}</span>
                 </div>
@@ -158,7 +173,7 @@ export function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center justify-center gap-3 py-6">
-              {topKeywords.map((k) => {
+              {topKeywords.slice(0, 28).map((k) => {
                 const fontSize = 14 + Math.min(28, Math.floor(k.count / 3))
                 const color =
                   k.sentiment === "positive" ? "hsl(var(--sentiment-positive))" :
@@ -212,51 +227,95 @@ export function AnalyticsPage() {
 
       {/* Pipeline Evaluation */}
       <TabsContent value="evaluation" className="space-y-4">
-        <Card className="border-brand/30 bg-brand/[0.02]">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              📊 Pipeline Comparison: Hybrid (LLM) vs VADER Baseline
-            </CardTitle>
-            <CardDescription>
-              Empirical justification for the hybrid NLP architecture — measured on 50 hand-labeled reviews.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="metric" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)", fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="VADER baseline" fill="hsl(var(--sentiment-neutral))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Hybrid (LLM)"   fill="hsl(var(--brand))"             radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border bg-background p-3">
-                <p className="text-xs text-muted-foreground">VADER baseline</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums">{pipelineComparison.vader.overall}%</p>
-                <p className="text-xs text-muted-foreground">Overall accuracy</p>
-              </div>
-              <div className="rounded-lg border border-brand/30 bg-brand/5 p-3">
-                <p className="text-xs text-muted-foreground">Hybrid (LLM)</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-brand">{pipelineComparison.hybrid.overall}%</p>
-                <p className="text-xs text-muted-foreground">Overall accuracy</p>
-              </div>
-              <div className="rounded-lg border border-sentiment-positive/30 bg-sentiment-positive/5 p-3">
-                <p className="text-xs text-muted-foreground">Improvement</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-sentiment-positive">
-                  +{pipelineComparison.hybrid.overall - pipelineComparison.vader.overall}%
-                </p>
-                <p className="text-xs text-muted-foreground">Δ vs baseline</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <EvaluationPanel />
       </TabsContent>
     </Tabs>
+  )
+}
+
+function EvaluationPanel() {
+  const { data, loading } = useApi(
+    api.evaluation,
+    { vader: {}, hybrid: {}, _pending: true } as { vader: Record<string, number>; hybrid: Record<string, number>; _pending?: boolean },
+    [],
+  )
+
+  if (loading) {
+    return <Card className="p-12 text-center text-sm text-muted-foreground">Loading evaluation…</Card>
+  }
+
+  const pending = data._pending || !Object.keys(data.hybrid).length
+  if (pending) {
+    return (
+      <Card className="border-dashed">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Pipeline Evaluation</CardTitle>
+          <CardDescription>Hybrid (LLM) vs VADER baseline — not yet run.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-dashed bg-muted/30 p-8 text-center">
+            <p className="text-sm font-medium">Evaluation pending</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Run the evaluation harness (hand-label 50 reviews, then{" "}
+              <code className="rounded bg-muted px-1 py-0.5 font-mono">python evaluation/evaluate.py</code>)
+              to populate the accuracy comparison here.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const compareData = Object.keys(data.hybrid).map((k) => ({
+    metric: k,
+    "VADER baseline": data.vader[k] ?? 0,
+    "Hybrid (LLM)": data.hybrid[k] ?? 0,
+  }))
+
+  return (
+    <Card className="border-brand/30 bg-brand/[0.02]">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <BarChart3 className="h-4 w-4" /> Pipeline Comparison: Hybrid (LLM) vs VADER Baseline
+        </CardTitle>
+        <CardDescription>
+          Empirical justification for the hybrid NLP architecture — measured on hand-labeled reviews.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={compareData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="metric" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
+              <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)", fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="VADER baseline" fill="hsl(var(--sentiment-neutral))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Hybrid (LLM)"   fill="hsl(var(--brand))"             radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border bg-background p-3">
+            <p className="text-xs text-muted-foreground">VADER baseline</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{data.vader.overall ?? 0}%</p>
+            <p className="text-xs text-muted-foreground">Overall accuracy</p>
+          </div>
+          <div className="rounded-lg border border-brand/30 bg-brand/5 p-3">
+            <p className="text-xs text-muted-foreground">Hybrid (LLM)</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-brand">{data.hybrid.overall ?? 0}%</p>
+            <p className="text-xs text-muted-foreground">Overall accuracy</p>
+          </div>
+          <div className="rounded-lg border border-sentiment-positive/30 bg-sentiment-positive/5 p-3">
+            <p className="text-xs text-muted-foreground">Improvement</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-sentiment-positive">
+              +{(data.hybrid.overall ?? 0) - (data.vader.overall ?? 0)}%
+            </p>
+            <p className="text-xs text-muted-foreground">delta vs baseline</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

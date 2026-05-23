@@ -27,6 +27,7 @@ CANONICAL_HEADERS = [
     "external_id",
     "restaurant_name",
     "restaurant_external_id",
+    "city",
     "author",
     "rating",
     "original_text",
@@ -162,23 +163,30 @@ def normalize_csv(input_csv: Path, output_csv: Path) -> int:
         writer.writerows(by_id.values())
 
     n = len(by_id)
-    print(f"[adapter] normalized {n} rows ({skipped} skipped) → {output_csv}")
+    print(f"[adapter] normalized {n} rows ({skipped} skipped) -> {output_csv}")
     return n
 
 
-def normalize_sqlite(db_path: Path, output_csv: Path) -> int:
+def normalize_sqlite(
+    db_path: Path,
+    output_csv: Path,
+    url_city_map: dict[str, str] | None = None,
+) -> int:
     """Read the vendor's scrape.db directly, write canonical CSV.
 
     Preferred over normalize_csv(): the vendor's CSV export breaks on Windows
     because place_ids contain a colon (e.g. "0x3255...:0"), which NTFS treats as
     an alternate-data-stream separator. Reading SQLite sidesteps that entirely.
 
-    Joins `reviews` with `places` for the restaurant name. Deduplicates on
+    Joins `reviews` with `places` for the restaurant name. The vendor has no
+    `city` column, so we attach it by matching each place's `original_url`
+    against `url_city_map` (built from our config.yaml). Deduplicates on
     review_id; skips rows with empty text or missing rating.
     """
     db_path    = Path(db_path)
     output_csv = Path(output_csv)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
+    url_city_map = url_city_map or {}
 
     if not db_path.is_file():
         raise FileNotFoundError(f"vendor scrape.db not found: {db_path}")
@@ -190,7 +198,7 @@ def normalize_sqlite(db_path: Path, output_csv: Path) -> int:
             """
             SELECT r.review_id, r.place_id, r.author, r.rating,
                    r.review_text, r.review_date,
-                   p.place_name
+                   p.place_name, p.original_url
             FROM reviews r
             LEFT JOIN places p ON p.place_id = r.place_id
             WHERE r.is_deleted = 0
@@ -221,11 +229,13 @@ def normalize_sqlite(db_path: Path, output_csv: Path) -> int:
             continue
 
         date_added = _coerce_date(row["review_date"])
+        city = url_city_map.get((row["original_url"] or "").strip(), "")
 
         by_id[external_id] = {
             "external_id":            external_id,
             "restaurant_name":        (row["place_name"] or "").strip() or "Unknown",
             "restaurant_external_id": (row["place_id"] or "").strip(),
+            "city":                   city,
             "author":                 (row["author"] or "").strip(),
             "rating":                 rating,
             "original_text":          original_text,
@@ -240,7 +250,7 @@ def normalize_sqlite(db_path: Path, output_csv: Path) -> int:
         writer.writerows(by_id.values())
 
     n = len(by_id)
-    print(f"[adapter] normalized {n} rows from sqlite ({skipped} skipped) → {output_csv}")
+    print(f"[adapter] normalized {n} rows from sqlite ({skipped} skipped) -> {output_csv}")
     return n
 
 

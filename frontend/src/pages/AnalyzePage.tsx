@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Loader2, Languages, Quote } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { api, type AnalyzeResponse } from "@/lib/api"
 
 const samples = [
   { lang: "Filipino", text: "Sobrang masarap ng adobo nila pero medyo mabagal ang serbisyo. Mura naman ang presyo." },
@@ -12,29 +13,28 @@ const samples = [
   { lang: "English",  text: "The food was amazing but the service was painfully slow. Worth it though." },
 ]
 
-const mockResult = {
-  language: "tl",
-  overall_sentiment: "positive",
-  overall_confidence: 0.86,
-  aspects: [
-    { aspect: "food",    sentiment: "positive", evidence: "Sobrang masarap ng adobo nila" },
-    { aspect: "service", sentiment: "negative", evidence: "medyo mabagal ang serbisyo" },
-    { aspect: "price",   sentiment: "positive", evidence: "Mura naman ang presyo" },
-  ],
-  keywords: ["masarap", "adobo", "mabagal", "serbisyo", "mura"],
-}
-
 export function AnalyzePage() {
   const [input, setInput] = useState(samples[0].text)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<typeof mockResult | null>(null)
+  const [result, setResult] = useState<AnalyzeResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function analyze() {
     setLoading(true)
     setResult(null)
-    await new Promise((r) => setTimeout(r, 1200))
-    setResult(mockResult)
-    setLoading(false)
+    setError(null)
+    try {
+      const res = await api.analyze({ text: input })
+      setResult(res)
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? "Analysis failed — is the backend running and the Groq key set? " + e.message
+          : "Analysis failed."
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -75,11 +75,11 @@ export function AnalyzePage() {
 
           <Button onClick={analyze} disabled={loading || !input.trim()} className="w-full gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {loading ? "Analyzing with Llama 3.3…" : "Analyze with Hybrid Pipeline"}
+            {loading ? "Analyzing with Llama 3.1…" : "Analyze with Hybrid Pipeline"}
           </Button>
 
           <p className="text-[11px] text-muted-foreground">
-            Pipeline: NLTK clean → langdetect → Llama 3.3 (Groq) → rule-based aspect validate → TF-IDF keywords.
+            Pipeline: NLTK clean → langdetect → Llama 3.1 8B (Groq) → rule-based aspect validate → TF-IDF keywords.
           </p>
         </CardContent>
       </Card>
@@ -91,9 +91,15 @@ export function AnalyzePage() {
           <CardDescription>Structured ABSA result returned in a single LLM call</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!result && !loading && (
+          {!result && !loading && !error && (
             <div className="flex h-64 items-center justify-center text-center text-sm text-muted-foreground">
               Run the pipeline to see results.
+            </div>
+          )}
+
+          {error && !loading && (
+            <div className="flex h-64 items-center justify-center rounded-md border border-destructive/30 bg-destructive/5 p-4 text-center text-sm text-destructive">
+              {error}
             </div>
           )}
 

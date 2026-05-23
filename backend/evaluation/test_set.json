@@ -1,0 +1,656 @@
+{
+  "meta": {
+    "created": "2026-05-23",
+    "verified_on": "2026-05-23",
+    "n": 50,
+    "seed": 0,
+    "verified": true,
+    "label_method": "Gold labels human-verified by reading each review TEXT. When review text and star rating conflicted, the TEXT was treated as ground truth (the test set evaluates how systems read text, not how users click stars). Aspect labels left as previously seeded.",
+    "verification_rule": "text-wins-over-stars",
+    "stratification": "by detected_language (PH languages oversampled); rating-spread within language",
+    "language_distribution": {
+      "unknown": 2,
+      "ceb": 14,
+      "tl": 20,
+      "en": 14
+    },
+    "gold_sentiment_distribution": {
+      "negative": 12,
+      "positive": 28,
+      "neutral": 10
+    },
+    "gold_sentiment_distribution_before_verification": {
+      "negative": 11,
+      "positive": 32,
+      "neutral": 7
+    },
+    "labels_changed_during_verification": 7
+  },
+  "samples": [
+    {
+      "review_id": 266,
+      "text": "一言で言って、味は日本のファミリーレストラン並み、サービスはそれより遥かに下です。一品ずつのボリュームは多いですが出来損ないのアメリカ料理のようです。ほとんどの料理が事前に作られたものを温め直しただけのもので、ちょっと気の利いた飛行機の機内食のような内容でした。ナチョスが人気だということで半分以上のグループが頑んでいましたが、確かに熱いチーズを卓上でかけてくれる演出は多少興味深いものの、（単純に量が多いからか不味いからかは不明ですが）皆さん食べきらずに8割以上の人たちが持ち帰っていました。\n特筆すべきはサービスの悪さで、ビールの追加の際にも、3人くらいに頑んでやっと出てくる有様でした。おまけに3回目に頑んだ際には、こちらを指差して「あの客は何度も頑んでしつこい」という態度で非常に腹が立ちました。わかっているんならさっさと持って来いと思いました。\nとにかく絶対に避けたほうがいい店です。",
+      "lang": "unknown",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "negative",
+        "service": "negative",
+        "price": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 268,
+      "text": "4th time for this month , Very lami ang food",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 282,
+      "text": "binabalik balikan 1000/10",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 292,
+      "text": "Masarap yung tiyula itum a must order\n\nVery kakaiba and malinamnam",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 293,
+      "text": "The food comes in generous serving and beautifully plated, lami and fresh. While the staff is accomodating and pleasant, pirmi naay smile dili ta ma ikog. <3",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 331,
+      "text": "Sarap po ng pagkaon dito",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 334,
+      "text": "A bit loud",
+      "lang": "en",
+      "rating": 4,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "ambiance": "negative"
+      },
+      "verify_note": "Text is only 'A bit loud' — a mild ambiance complaint with no positive content; not 'positive' on text alone.",
+      "verified": true
+    },
+    {
+      "review_id": 350,
+      "text": "Napa ka sarap ng leche plan😋 …",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 353,
+      "text": "Napaganda nang lugar at ang sarap nang pagkain",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "ambiance": "positive",
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 359,
+      "text": "Lami ang food labi na ang grilled chicken steak\nPero nganong naay mga langaw?",
+      "lang": "ceb",
+      "rating": 3,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "food": "positive",
+        "cleanliness": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 363,
+      "text": "Lami ila nachos",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 364,
+      "text": "Food was delicious! but the bread on the pasta quickly got stale wala pa 10 mins after naserve and murag rubber when chewed, the seafoods on the pasta were also lansa. oyster sisig was really yummy, but there was too much oil for preference na murag 3 scoops na atong serving spoon. The nachos were really good! my fave:D pero paspas ra kaayo nahumay ang chips. service was okay ig, much better if naay magoffer refill sa water:)",
+      "lang": "ceb",
+      "rating": 4,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "negative",
+        "ambiance": "neutral",
+        "price": "neutral",
+        "cleanliness": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 377,
+      "text": "I had a great experience here🥰 the food is Lami kaayo.",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 379,
+      "text": "Lami kaayu",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 380,
+      "text": "❤️❤️❤️",
+      "lang": "unknown",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {},
+      "verified": true
+    },
+    {
+      "review_id": 395,
+      "text": "Masarap at filling ang meals sa Fat Chef Restaurant! Perfect sa family dinner o casual meal.",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "ambiance": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 398,
+      "text": "Masarap ang pagkain at generous ang serving. Ramdam mo ang quality ng ingredients sa bawat dish. Talagang satisfying kumain dito.",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 410,
+      "text": "Food was very expensive yet there is no running water!",
+      "lang": "en",
+      "rating": 2,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "price": "negative",
+        "cleanliness": "negative",
+        "food": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 411,
+      "text": "Food not great. Katsudon too salty, quattro formaggi no taste at all and the other order the server or the cook forgot about it. Recommended for the place and ambiance though",
+      "lang": "en",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "negative",
+        "service": "negative",
+        "ambiance": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 418,
+      "text": "Kay mahal ng beef niyo. Wag niyo sana kmi iserve ng buto lang. Utang na loob.",
+      "lang": "tl",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "price": "negative",
+        "food": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 425,
+      "text": "Used to be one of my fave resto here in CDO, however - after our recent visit, where they served us crispy pata worth 900+ na puro bukog with some meat, and not crispy at all. I’m not sure, why they felt that was even appropriate to serve.\n\nThe other dishes were fine but no longer hot/warm upon serving except of course the bulalo, which was a bit warm but not hot enough for a soup.\n\nBecause of this recent visit - I would no longer recommend this to any of my friends/family, I used to rave about this resto as I loved their sizzling beef sinigang.",
+      "lang": "en",
+      "rating": 2,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "negative",
+        "price": "neutral",
+        "cleanliness": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 430,
+      "text": "Please read: Panagsa ragyud ko ga review pero need gyud nako ni i review. Halosa makita ninyo sa google review mga 5 stars. So dapat mu lantaw sad mos low reviews una kay legit gyud.\nHad dinner Dec. 28, 2025.\nNanawag ko 4 times para mag reserve pero dili gyud sila ga tubag. So no choice, nag walk in nalang mi.\nPagka kuha namog table, wala man lang mi gi hatagan ug menu para maka pili. So after 15 mins, gi tawag namo uban nila staff para sa menu kay ga hulata rasad mi. Take note, nag bayad mog 5% sa service nila.\nDapat silay mag dala sa customer, kay gi bayaran sila ana. So naka order nami.\nAfter na serve ang Nachos ug soda, 30 mins aya gi serve ang spaghetti. Excited pakay mi sa mga upcoming nga gi hulat namo nga orders. Ang steak ug baby back.\nAfter 1 hour, sa sigeg pa remind aya pa gi serve ang steak namo. Pero wala nay gana kay perting dugaya gyud.\n1 hour and 30 mins na nilabay, gi remind nasad namo among order na baby back, pero grabe bay wala padaw gi luto. Amo nalang gi cancel ang baby back total wala paman daw gi luto. Duda namo ang nag kuha sa among order nabulabog. Perti ka ngil ad gyud among na experience ay. Ga celebrate pa raba unta mig anniversary. First and last nato namo. Daghan good reviews bay. Pero sa price nga gina bayaran, mahal kaayo siya then poor kaayo ang service, ga bayad pa naman 5% unya ing ana among ma experience. Dili gyud siya worth it. Bastos gyud kaayo among na feel kay mura mig mga tanga didto ga hulata sa food. Among coke lanay ug dili na bugnaw.\nPoor coordination\nNo accountability, kabalo na dila nga palpak kaayo ila g service sa amoa pero wala gyud nangayog pasaylo nga naa gyud apan.\n\nSo kung ako sa inyo guys, huna hunaa sa gyud ug mu go mo. Sa tinuod lang, hype ragyud to diya. Na bait pami , paita.",
+      "lang": "ceb",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "service": "negative",
+        "price": "negative",
+        "ambiance": "negative",
+        "food": "neutral",
+        "cleanliness": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 432,
+      "text": "closed sila. gikan pag layu. wlay update social media nga sirado",
+      "lang": "tl",
+      "rating": 3,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "service": "negative",
+        "food": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 438,
+      "text": "the food was great, it was affordable and delicious, especially the coleslaw. the only problem is almost done na kami sa meal but no one offered us service water when in other restaurant, magserve sila water first before anything else. no one came back to us pa nung kinukang kami sa plates, had to call someone pa to give us a plate for one of my companions. but all in all, the food and overall atmosphere was great, needs improvement lang sa service :)",
+      "lang": "tl",
+      "rating": 4,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "negative",
+        "ambiance": "positive",
+        "price": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 453,
+      "text": "The best food I had in the Philippines.",
+      "lang": "en",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 454,
+      "text": "The food in this place has never let me down.\n\nEdit: Nov 6, 2025\n\nNag kaon nasad mi dire sa akong wife and I have to say lami jud ilang food. You won't regret eating here. ♥️",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "positive",
+        "ambiance": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 460,
+      "text": "Lami ilang coleslaw sa ribs & bibs sa Ayala thank you tes for your good customer service☺️",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 465,
+      "text": "Summary:\n*DISGUSTING FOOD - There's a fly on our food\n*Unprofessional Staffs\n\n1. Babyback ribs - As you can see on the photos, there is a fly (langaw) on our food! Kadiri! Kinuha lang nila basta and pinalitan nung sinabi namin.\n\nNo apology or anything from them, kahit yung mismong manager (owner?) na babae, dedma lang kahit ininform namin siya about this. Ang bastos lang.\n\n2. Angus beef - The beef itself was just meh. However, just look at that \"mashed potato\". I specifically asked their server kung powder or real potato ba yung mashed potato nila, sabi niya tunay daw. Pati ata yun hindi nila alam. Tingnan niyo naman itsura oh. Mukhang muffin dahil powder na nga, hindi pa niluto nang maayos.\n\n3. General comment - Their food are obviously pre-made then reheated. Meron ka makakain minsan na malamig pa na parts. Some resto rin naman ginagawa to pero sakanila di magawa nang maayos at sobrang halata. Yuck!\n\n4. Incompetent din yung servers nila. Yung lalaking kumuha ng order namin, hindi nalista lahat tapos sinisi pa kami nung kulang. Ang labo kausap. Hinayaan nalang namin.\n\nFor the price, you would expect an above average experience, pero kabaliktaran pala. Sobrang walang kwenta dito, promise. If you're looking to impress someone or have a nice dinner, I would highly suggest you look elsewhere because you will not get it from here.\n\nIf di pa enough to for you to avoid them, just check out the reviews from other people. 🙃",
+      "lang": "tl",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "negative",
+        "service": "negative",
+        "ambiance": "neutral",
+        "price": "negative",
+        "cleanliness": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 467,
+      "text": "Although the atmosphere was good, the food was really subpar. We ordered the US Steak and waited for 30 mins. This is the longest wait time I have encountered. Moreover, when we started eating, the steak was quite tough. Not something you want after waiting such a long time.",
+      "lang": "en",
+      "rating": 2,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "negative",
+        "service": "negative",
+        "ambiance": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 476,
+      "text": "POOR SERVICE ilang guard. We supposed to eat here for the first time to try the hype ng restau, pero hindi kami pinag park ng guard kahit sobrang laki ng VACANT PARKING SPACE. Never again!",
+      "lang": "tl",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "service": "negative",
+        "ambiance": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 480,
+      "text": "2500 PHP",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "neutral",
+      "gold_aspects": {},
+      "verify_note": "Text is just a price figure '2500 PHP' with no sentiment expressed.",
+      "verified": true
+    },
+    {
+      "review_id": 514,
+      "text": "Farm Grill staff is great and the food is very delicious and comforting. Sarap balik-balikan! ✨",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "service": "positive",
+        "food": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 524,
+      "text": "Beautiful ❤️",
+      "lang": "en",
+      "rating": 1,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "ambiance": "positive"
+      },
+      "verify_note": "'Beautiful ❤️' is clearly positive; the 1-star rating appears to be a misclick.",
+      "verified": true
+    },
+    {
+      "review_id": 532,
+      "text": "Food is good, no question. My personal favorites are Wagyu Skewers, Firecracker Maki Roll, and Miso soup. Staff were friendly too. My only disappointment are as follows:\n\n1. We requested our orders to be served at the same time. We were told yes but the foods were still served one at a time. Sana hindi na lang kami in-oo ng crew.\n\n2. Miso soup was served already cold. We requested this to be served with the other orders and to serve it still hot. Again, crew said yes only to serve the Miso separately later on AND no longer hot. Super disappointing for me since I keep coming back to The Pantry for their hot Miso soup;\n\n3. The crew, more than once, asked for our plates even though we have not yet finished eating. The first instance I told them we were not yet finished as there’s still food on our table but the staff still came back, interrupting our talks, asking for the plates. I found this really rude.\n\n‘wouldve given 5-star rating were it not for the above unpleasant experience. (Note: at least 3 different crews served us.) Hope they’ll improve on these.",
+      "lang": "tl",
+      "rating": 3,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "negative",
+        "ambiance": "neutral",
+        "price": "neutral",
+        "cleanliness": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 539,
+      "text": "It could be better. Prices could be better, too.",
+      "lang": "en",
+      "rating": 4,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "price": "negative",
+        "food": "neutral"
+      },
+      "verify_note": "'It could be better. Prices could be better, too.' expresses mild dissatisfaction, not praise.",
+      "verified": true
+    },
+    {
+      "review_id": 543,
+      "text": "Waited for almost 2hrs for our food to be serve, ending they served our food to other dinners.. lousy staff, felt discriminated by the staff...with me was my senior parents and my 2 toddler, We ended living the place hungry.",
+      "lang": "en",
+      "rating": 3,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "service": "negative",
+        "food": "negative",
+        "ambiance": "neutral",
+        "cleanliness": "neutral"
+      },
+      "verify_note": "2hr wait, food given to other diners, felt discriminated, left hungry — strongly negative text despite 3 stars.",
+      "verified": true
+    },
+    {
+      "review_id": 553,
+      "text": "Affordable foods and pangmasa ang presyo!masarap pa, pati mga waiters ang babait.",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "price": "positive",
+        "food": "positive",
+        "service": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 555,
+      "text": "Pang masa na restaurant.",
+      "lang": "tl",
+      "rating": 3,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "food": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 557,
+      "text": "the food process is too long",
+      "lang": "en",
+      "rating": 1,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 565,
+      "text": "Masarap naman food nila. Cozy ambiance and accessible parking. Staff could have been better. Accommodating pero parang laging naka simangot and not attentive to customers who are ready to place their order. Pricing is medyo on the pricier side kaya we expected more from the staff.",
+      "lang": "tl",
+      "rating": 4,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "service": "negative",
+        "price": "negative",
+        "food": "neutral",
+        "ambiance": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 594,
+      "text": "The ambiance was great. The staff was approachable and attentive to their costumers.",
+      "lang": "en",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "ambiance": "positive",
+        "service": "positive",
+        "price": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 605,
+      "text": "Food was bit pricey but reasonable. Proportions were average but the salmon I ordered was a bit dry. The salads were definitely scrumptious! Service is excellent and the atmosphere is definitely classy",
+      "lang": "en",
+      "rating": 4,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "price": "neutral",
+        "food": "positive",
+        "service": "positive",
+        "ambiance": "positive",
+        "cleanliness": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 606,
+      "text": "Napaka ganda pero on renovation pa pero maka veset don  at maka bili ka ng mga manok at baboy",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "ambiance": "neutral",
+        "food": "positive",
+        "price": "positive"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 613,
+      "text": "Woooow! We went there for merienda, our bill was ₱840 total. Over looking not so nice view (makikita mo bubong ng resto sa baba... parang ang layo tignan), cool ambiance, open space, you can see how they prepare your food... typical place if you visit Marilaque (Rizal) regularly, foggyyy walang ganyan sa Manila! haha but scarry sinceee fooggyyy my chance na zero visibility, so mag-ingat po.\n\nDefinitely, I will go back there. Buuttt, the downside for me... ang pangit ng front nila, my mga nka park na motor, not so presentable tignan, I dunno lng kung my inaayos ba or sadyang nagkataon lng pgpunta namin. My parking nman sila sa harap, ttawid k lng.\n\nBtw, already went to the resto below.... and that's for another review.",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "ambiance": "positive",
+        "food": "positive",
+        "price": "neutral",
+        "service": "positive",
+        "cleanliness": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 616,
+      "text": "Sobrang sulit dito! Ganda ng place, sarap ng luto sa mga food. Worth it ang pag visit at pag dine-in dito 👍🏻👌🏻",
+      "lang": "tl",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "ambiance": "positive",
+        "food": "positive",
+        "service": "positive",
+        "price": "neutral"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 622,
+      "text": "lame ilang kape",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "positive",
+      "gold_aspects": {
+        "food": "negative"
+      },
+      "verify_note": "'lame' here is a common misspelling of 'lami' (delicious) — confirmed by reviewer; positive.",
+      "verified": true
+    },
+    {
+      "review_id": 627,
+      "text": "wala pa ng atio ako ng am chicken house para sa birthday nako 🥺🥺🥺",
+      "lang": "ceb",
+      "rating": 5,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "food": "negative"
+      },
+      "verify_note": "Garbled text expressing longing/sadness about wanting the chicken house for a birthday; no clear endorsement of the food.",
+      "verified": true
+    },
+    {
+      "review_id": 628,
+      "text": "Nagchange ang lami sa chicken. Dli na nuot sa laman :'(",
+      "lang": "ceb",
+      "rating": 4,
+      "gold_overall": "negative",
+      "gold_aspects": {
+        "food": "negative"
+      },
+      "verify_note": "'Nagchange ang lami sa chicken. Dli na nuot sa laman :(' = the chicken's taste got worse / no longer flavorful.",
+      "verified": true
+    },
+    {
+      "review_id": 635,
+      "text": "It's nice, been there for parties mainly. The food is consistently good, the service is okay and the atmosphere is nothing special.\nI do and would definitely go back.",
+      "lang": "en",
+      "rating": 3,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "food": "positive",
+        "service": "neutral",
+        "ambiance": "negative"
+      },
+      "verified": true
+    },
+    {
+      "review_id": 636,
+      "text": "Went there when it was called Enangs 17 years ago, now named Fev's. Was ok then and 17 years its still OK. The menu is so standard filipino, you can find that food anywhere in the Philippines. The service was good and attentive, it's a nice retreat for the natives.",
+      "lang": "en",
+      "rating": 3,
+      "gold_overall": "neutral",
+      "gold_aspects": {
+        "food": "negative",
+        "service": "positive",
+        "ambiance": "positive"
+      },
+      "verified": true
+    }
+  ]
+}

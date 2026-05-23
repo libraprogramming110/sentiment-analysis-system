@@ -6,9 +6,8 @@ const titles: Record<string, { title: string; subtitle: string }> = {
   "/":          { title: "Dashboard",      subtitle: "Overview of customer sentiment across all reviews." },
   "/reviews":   { title: "Reviews",        subtitle: "Browse, filter, and inspect every analyzed review." },
   "/analytics": { title: "Analytics",      subtitle: "Deep-dive into aspect performance and trends." },
+  "/compare":   { title: "Compare",        subtitle: "Benchmark all restaurants side by side, grouped by city." },
   "/analyze":   { title: "Live Analyze",   subtitle: "Paste a review and get instant ABSA results." },
-  "/settings":  { title: "Settings",       subtitle: "Manage workspace, API keys, and preferences." },
-  "/help":      { title: "Help",           subtitle: "Documentation and defense Q&A reference." },
 }
 
 export function AppShell() {

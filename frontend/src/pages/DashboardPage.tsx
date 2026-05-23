@@ -29,7 +29,6 @@ export function DashboardPage() {
         <StatCard
           label="Positive"
           value={loading ? "—" : summary.positive}
-          delta={summary.positiveDelta}
           icon={<ThumbsUp className="h-4 w-4" />}
           tone="positive"
           helper={`${positivePct}% of all reviews`}
@@ -37,7 +36,6 @@ export function DashboardPage() {
         <StatCard
           label="Negative"
           value={loading ? "—" : summary.negative}
-          delta={summary.negativeDelta}
           icon={<ThumbsDown className="h-4 w-4" />}
           tone="negative"
           helper={`${negativePct}% — flag for follow-up`}

@@ -5,14 +5,45 @@
 RestoPulse is a 26-day student capstone (Apr 23 – May 19, 2026) that turns scraped restaurant reviews into a sentiment + aspect-mining dashboard. The project directory is currently empty (only the charter PDF and a blank `starter.MD`), so this plan covers the full system from scratch.
 
 **User decisions locked in:**
-- **Languages:** English, Filipino, Cebuano, Ilocano (most reviews will be Filipino)
-- **Data source:** Scraped Google Reviews from 1–3 real Philippine restaurants
+- **Languages:** English, Filipino, Cebuano, Ilocano (corpus turned out English-dominant + Cebuano + Tagalog; ~0 Ilocano since all restaurants are in Mindanao)
+- **Data source:** Scraped Google Reviews from **10 real restaurants across 3 Mindanao cities** (Cagayan de Oro, Iligan, Marawi) — 390 reviews total. (Charter floor was 1; we exceeded it to deliver the comparison feature.)
 - **Sentiment depth:** Aspect-Based Sentiment Analysis (ABSA) — per-aspect scoring (food, service, ambiance, price, cleanliness)
 - **Auth:** None — single-tenant demo, no login page, no Users table
-- **NLP approach:** **Hybrid pipeline** — open-source LLM (Llama 3.3 via Groq free tier) as the multilingual sentiment engine, combined with traditional NLP components (NLTK preprocessing, VADER baseline, keyword extraction, rule-based aspect tagging) for defense-readiness and rigorous evaluation.
-- **Frontend stack:** **React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Recharts** (upgraded from the original Bootstrap plan so we can use the 21st-dev Magic MCP for high-quality components and a modern SaaS design language). Flask becomes a JSON-only API.
+- **NLP approach:** **Hybrid pipeline** — open-source LLM (**Llama 3.1 8B Instant** via Groq free tier) as the multilingual sentiment engine, combined with traditional NLP components (NLTK preprocessing, VADER baseline, keyword extraction, rule-based aspect tagging) for defense-readiness and rigorous evaluation.
+- **Frontend stack:** **React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Recharts** (upgraded from the original Bootstrap plan so we can use the 21st-dev Magic MCP for high-quality components and a modern SaaS design language). Flask is a JSON-only API.
 
 The biggest design driver is **multi-language Filipino/Cebuano/Ilocano support**, which rules out pure VADER. The hybrid approach gives state-of-the-art accuracy *and* visible traditional NLP components for the panel defense.
+
+> **Model note:** the plan originally specified Llama **3.3 70B**, but batch-ingesting 390 reviews exhausted Groq's free-tier **100k-tokens/day** limit on that model (only ~245 reviews got through). We switched to **Llama 3.1 8B Instant** (~500k tokens/day) + trimmed the prompt, and re-ingested all 390 cleanly. Trade-off: 8B's language detection is weaker, so we re-derive `detected_language` with langdetect + a regional heuristic instead of trusting the LLM's guess.
+
+---
+
+## ✅ Current Status & Session Progress
+
+**Overall: the system is functional end-to-end.** Frontend + backend + DB + NLP pipeline all work on real scraped data. Only the formal evaluation harness (Phase 4) and docs/demo (Phase 5) remain.
+
+### What's live right now
+- **Backend:** Flask on `127.0.0.1:5000`, Groq key loaded, SQLite with **390 analyzed reviews** across 10 restaurants / 3 cities.
+- **Frontend:** React on `127.0.0.1:5173`, all **5 pages live on real API data** (Dashboard, Reviews, Analytics, Compare, Live Analyze).
+- **Data snapshot:** 313 positive / 22 neutral / 55 negative; avg rating 4.5; languages English 346 / Tagalog 28 / Cebuano 14 / unknown 2.
+
+### Done this session (chronological)
+1. Built Flask backend skeleton (CORS, health check, stub routes) + verified frontend↔backend.
+2. Built SQLite schema + `db/repo.py`; seeded sample data; wired Dashboard + Reviews to live API.
+3. Chose self-hosted scraper (`georgekhananaev/google-reviews-scraper-pro`); built wrapper driving **Brave**; solved Chrome-missing, cp1252 Unicode crash, and the Windows colon/ADS export bug (read `scrape.db` directly).
+4. Scraped **390 reviews** (10 restaurants, capped 80 each) across CDO / Iligan / Marawi with a `city` tag.
+5. Built the full **hybrid NLP pipeline** (preprocess, langdetect, Groq LLM, rule aspects, TF-IDF, VADER baseline) + `scripts/ingest.py` (resumable, throttled).
+6. Hit Groq 70B daily-token limit at ~245 reviews → switched to **Llama 3.1 8B**, trimmed prompt, re-ingested all 390.
+7. Fixed language-detection noise (8B over-predicted Ilocano) via `scripts/relabel_languages.py` (no tokens).
+8. Wired **Analytics** + **Live Analyze** to live API; fixed health-score >100 bug; fixed stale model labels.
+9. Built **Compare page** — city summary, ranked chart, leaderboard with **Bayesian-shrinkage** ranking + city filter + small-sample badges; fixed the sidebar workspace chip.
+10. Added **pagination** to Reviews (15/page).
+11. Updated this plan document to match reality.
+
+### Remaining (next sessions)
+- **P4 — Evaluation harness:** hand-label ~50 reviews → `evaluation/test_set.json`; build `evaluation/evaluate.py` to run hybrid vs VADER; write `results.md`; fills the Analytics "Pipeline Evaluation" tab and proves the ≥80% accuracy requirement.
+- **P5 — Docs & demo:** SRS, system-design diagrams, slides, defense rehearsal.
+- **Minor:** smoke tests (`tests/test_pipeline.py`); optional ingest improvement (commit-as-you-go for live progress).
 
 ---
 
@@ -27,7 +58,7 @@ Raw Review Text
     ↓
 [2] langdetect               ← traditional NLP (n-gram language ID)
     ↓
-[3] LLM Sentiment Engine     ← modern NLP (Llama 3.3 70B via Groq)
+[3] LLM Sentiment Engine     ← modern NLP (Llama 3.1 8B Instant via Groq)
     │   Single structured prompt returns:
     │   { overall_sentiment, aspects[], keywords[], language, confidence }
     ↓
@@ -36,14 +67,16 @@ Raw Review Text
     │   keyword dictionary; flags low-confidence cases
     ↓
 [5] TF-IDF Keyword Extraction    ← traditional NLP (statistical NLP)
-    │   Independent keyword extraction across the corpus
+    │   Independent keyword extraction across the corpus (sklearn)
     ↓
 [6] VADER Baseline (parallel)    ← traditional NLP (lexicon + rules)
-    │   Run on English-translated text; used ONLY for evaluation comparison,
+    │   Run on cleaned text; used ONLY for evaluation comparison,
     │   never shown in dashboard
     ↓
 Aggregate → SQLite
 ```
+
+> **Language detection refinement (post-build):** langdetect can't tell Cebuano/Ilocano apart (both look like Tagalog), and Llama 3.1 8B over-predicted Ilocano. We added `nlp/language.py` with a regional-marker heuristic + a `scripts/relabel_languages.py` pass that re-derives `detected_language` from langdetect + heuristic (no LLM, no tokens). Result: English 346 / Tagalog 28 / Cebuano 14 / unknown 2 / Ilocano 0 — accurate for a Mindanao corpus.
 
 ### Why hybrid (LLM + traditional) over alternatives
 
@@ -55,13 +88,14 @@ Aggregate → SQLite
 | Multilingual transformer (XLM-R) local | No API dependency | 500MB model, slow CPU, complex setup | Too heavy |
 | Per-language lexicons | Most authentic | Building Cebuano/Ilocano lexicons = research-paper scope | Out of scope |
 
-### LLM provider choice: **Groq + Llama 3.3 70B**
+### LLM provider choice: **Groq + Llama 3.1 8B Instant** (was 3.3 70B)
 
-- **Free tier:** ~14k requests/day — far more than the 100–300 reviews we need
-- **Speed:** ~500 tokens/sec (fastest inference available)
-- **Open-source model:** Llama 3.3 is Meta's open-weight model — important for defense ("we use an open-source LLM, not a proprietary API")
+- **Free tier:** 30 req/min, **~500k tokens/day** — enough to batch all 390 reviews in one pass (70B's 100k/day cap only allowed ~245)
+- **Speed:** very fast, low latency — good for the Live Analyze demo
+- **Open-source model:** Llama 3.1 is Meta's open-weight model — important for defense ("we use an open-source LLM, not a proprietary API")
 - **Fallback:** Google Gemini 2.0 Flash (1500 req/day free) if Groq is down
-- **Determinism:** `temperature=0` + cache raw LLM response in DB → demo is reproducible without internet
+- **Determinism:** `temperature=0` + cache raw LLM response in DB (`llm_raw_response`) → demo is reproducible without internet
+- **Throttle:** `nlp/llm.py` has a token-bucket limiter (~28 req/min) + 1 stricter retry on malformed JSON
 
 ### LLM prompt design (structured JSON output)
 
@@ -159,15 +193,19 @@ This satisfies the charter's 80% accuracy success metric *and* gives a defensibl
 
 ## 4. Data Acquisition (Scraping Strategy)
 
-### Recommendation: **One-shot scrape → CSV, not live API**
+### Recommendation: **One-shot scrape → CSV, not live API** ✅ Done
 
-Scrape once during Phase 2 (May 5–8) and commit the CSV. Do NOT scrape at runtime during the demo (network risk, TOS risk).
+Scraped once and committed the CSV. Do NOT scrape at runtime during the demo (network risk, TOS risk).
 
-**Tool choice:** `google-maps-scraper` (Python, free) or **Apify Google Maps Reviews Scraper** (free tier ~100 reviews) or manual Selenium script.
+**Tool chosen:** `georgekhananaev/google-reviews-scraper-pro` (Python/SeleniumBase, free, no signup) — vendored under `backend/scraper/vendor/` in its own `.venv-scraper`. Driven via a thin wrapper `backend/scraper/google_scraper.py`.
+- Evaluated SerpAPI / Apify / Outscraper first — all needed signup or (Outscraper) a card. The self-hosted scraper needs none.
+- Drives **Brave** (not Chrome) via the vendor's `CHROME_BIN` hook — `_find_browser()` auto-detects Brave/Chrome/Edge.
+- Reads the vendor's `scrape.db` **directly** (bypasses its CSV export, which breaks on Windows because Google place_ids contain a colon → NTFS alternate-data-stream bug).
+- `PYTHONIOENCODING=utf-8` set for the child process (vendor's progress spinner crashed on cp1252).
 
-**Target:** 1–3 restaurants × ~100 reviews each = 100–300 reviews (matches charter's data requirement).
+**Actual result:** 10 restaurants × ≤80 newest reviews = **390 reviews** across Cagayan de Oro (192), Iligan (149), Marawi (49). Capped at 80/restaurant after an uncapped run pulled 600+ from one place.
 
-**CSV schema:** `review_id, restaurant_name, review_text, rating, date, source`
+**Canonical CSV schema (`data/reviews_raw.csv`):** `external_id, restaurant_name, restaurant_external_id, city, author, rating, original_text, translated_text, date_added, source` — produced by `scraper/adapter.py:normalize_sqlite()`.
 
 **Ethics/scope note for documentation:** disclose scraping method, anonymize reviewer names, use only publicly visible reviews, academic-use disclaimer.
 
@@ -181,7 +219,7 @@ Scrape once during Phase 2 (May 5–8) and commit the CSV. Do NOT scrape at runt
 │  React 19 + TypeScript + Vite               │
 │  Tailwind + shadcn/ui + Recharts            │
 │  Pages: Dashboard, Reviews, Analytics,      │
-│         Live Analyze                        │
+│         Compare, Live Analyze               │
 └─────────────────────────────────────────────┘
               ↓ fetch() — JSON
 ┌─────────────────────────────────────────────┐
@@ -207,12 +245,16 @@ Scrape once during Phase 2 (May 5–8) and commit the CSV. Do NOT scrape at runt
 CREATE TABLE restaurants (
   restaurant_id   INTEGER PRIMARY KEY,
   name            TEXT NOT NULL,
+  external_id     TEXT UNIQUE,                 -- Google place_id (re-ingest dedup)
+  city            TEXT,                          -- assigned in scraper config (CDO/Iligan/Marawi)
   source_url      TEXT
 );
 
 CREATE TABLE reviews (
   review_id          INTEGER PRIMARY KEY,
   restaurant_id      INTEGER REFERENCES restaurants(restaurant_id),
+  external_id        TEXT UNIQUE,               -- Google review_id (re-ingest dedup)
+  author             TEXT,
   original_text      TEXT NOT NULL,
   translated_text    TEXT,                      -- for VADER baseline only
   detected_language  TEXT,                      -- 'en','tl','ceb','ilo','unknown'
@@ -251,6 +293,7 @@ CREATE TABLE keywords (
 - Added `vader_sentiment` + `vader_score` for baseline comparison
 - Added `llm_raw_response` for reproducibility/auditability
 - Added `source_method` on aspects to show LLM vs rule contribution
+- Added `restaurants.city` + `restaurants.external_id` + `reviews.external_id` (city clustering for Compare page; external_ids make re-ingest idempotent/resumable)
 
 ---
 
@@ -270,83 +313,96 @@ sentiment-analysis-system/
 │   ├── index.html
 │   └── src/
 │       ├── main.tsx
-│       ├── App.tsx                  # Router: /, /reviews, /analytics, /analyze
+│       ├── App.tsx                  # Router: /, /reviews, /analytics, /compare, /analyze
 │       ├── index.css                # Tailwind + design tokens (light/dark)
 │       ├── lib/
 │       │   ├── utils.ts             # cn() helper
-│       │   └── mockData.ts          # placeholder data (replace with API)
+│       │   ├── api.ts               # ✅ typed fetch client + useApi() hook
+│       │   └── mockData.ts          # graceful-fallback data if API is down
 │       ├── components/
-│       │   ├── ui/                  # shadcn primitives (button, card, badge,
-│       │   │                        # input, select, tabs, tooltip, popover,
-│       │   │                        # separator, scroll-area)
+│       │   ├── ui/                  # shadcn primitives
 │       │   ├── brand/Logo.tsx       # animated RestoPulse mark + wordmark
-│       │   ├── layout/              # Sidebar, Header, AppShell
+│       │   ├── layout/              # Sidebar (+ WorkspaceChip), Header, AppShell
 │       │   └── widgets/             # StatCard, SentimentDonut, AspectBars,
 │       │                            # TrendChart, TopKeywords, TopIssues,
 │       │                            # LanguageBreakdown
 │       └── pages/
-│           ├── DashboardPage.tsx
-│           ├── ReviewsPage.tsx
-│           ├── AnalyticsPage.tsx
-│           └── AnalyzePage.tsx
+│           ├── DashboardPage.tsx    # ✅ live
+│           ├── ReviewsPage.tsx      # ✅ live + pagination (15/page)
+│           ├── AnalyticsPage.tsx    # ✅ live (4 tabs; eval tab shows "pending")
+│           ├── ComparePage.tsx      # ✅ live — Bayesian ranking + city filter
+│           └── AnalyzePage.tsx      # ✅ live — real Groq /api/analyze
 │
-└── backend/                         # ⏳ Flask API — to be built next
-    ├── app.py                       # Flask entrypoint, CORS-enabled
+└── backend/                         # ✅ Flask API — built
+    ├── app.py                       # Flask entrypoint, CORS, init_db
     ├── requirements.txt
-    ├── .env                         # GROQ_API_KEY (gitignored)
+    ├── .env                         # GROQ_API_KEY + GROQ_MODEL (gitignored)
     ├── .env.example
-    ├── restopulse.db                # SQLite, gitignored
+    ├── restopulse.db                # SQLite (390 reviews ingested), gitignored
     ├── data/
-    │   ├── reviews_raw.csv
-    │   └── aspect_keywords.json
-    ├── scraper/google_scraper.py
+    │   ├── reviews_raw.csv          # ✅ 390 scraped reviews
+    │   └── aspect_keywords.json     # ✅ multilingual aspect dictionary
+    ├── scraper/
+    │   ├── google_scraper.py        # ✅ wrapper (Brave, reads vendor scrape.db)
+    │   ├── adapter.py               # ✅ normalize_sqlite() → canonical CSV
+    │   ├── config.yaml              # ✅ 10 restaurants, max_reviews:80
+    │   └── vendor/google-reviews-scraper-pro/   # vendored scraper + .venv-scraper
     ├── nlp/
-    │   ├── pipeline.py              # orchestrates hybrid pipeline
-    │   ├── preprocess.py            # NLTK cleaning, tokenization
-    │   ├── language.py              # langdetect
-    │   ├── llm.py                   # Groq + Llama 3.3
-    │   ├── aspects.py               # rule-based aspect validator
-    │   ├── keywords.py              # TF-IDF
-    │   └── baseline_vader.py        # VADER baseline
+    │   ├── pipeline.py              # ✅ orchestrates hybrid pipeline
+    │   ├── preprocess.py            # ✅ NLTK cleaning, tokenization
+    │   ├── language.py              # ✅ langdetect + regional heuristic + reconcile
+    │   ├── llm.py                   # ✅ Groq + Llama 3.1 8B, throttle, retry
+    │   ├── aspects.py               # ✅ rule-based aspect validator
+    │   ├── keywords.py              # ✅ TF-IDF (sklearn)
+    │   └── baseline_vader.py        # ✅ VADER baseline
     ├── db/
-    │   ├── schema.sql
-    │   └── repo.py
+    │   ├── schema.sql               # ✅ (city + external_id added)
+    │   └── repo.py                  # ✅ CRUD + dashboard/compare queries
     ├── routes/
-    │   ├── dashboard.py             # /api/summary
-    │   ├── reviews.py               # /api/reviews
-    │   ├── analytics.py             # /api/aspects, /api/keywords
-    │   └── analyze.py               # POST /api/analyze (live LLM)
-    ├── evaluation/
+    │   ├── dashboard.py             # ✅ /api/summary, /trend, /issues, /languages, /restaurants
+    │   ├── reviews.py               # ✅ /api/reviews (filters)
+    │   ├── analytics.py             # ✅ /api/aspects, /keywords, /evaluation (pending stub)
+    │   └── analyze.py               # ✅ POST /api/analyze (live LLM)
+    ├── scripts/
+    │   ├── ingest.py                # ✅ CSV → pipeline → SQLite (resumable, throttled)
+    │   ├── seed.py                  # ✅ sample-data seeder (early dev)
+    │   └── relabel_languages.py     # ✅ re-derive detected_language (no LLM)
+    ├── evaluation/                  # ⏳ to build (Phase 4)
     │   ├── test_set.json
     │   ├── evaluate.py
     │   └── results.md
-    ├── scripts/ingest.py
-    └── tests/test_pipeline.py
+    └── tests/test_pipeline.py       # ⏳ to build
 ```
 
 ---
 
 ## 8. Flask Routes (API contracts)
 
+Flask is **JSON-only** (no HTML); the React app serves all pages.
+
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/` | Dashboard HTML |
-| GET | `/api/summary` | `{total, positive, neutral, negative, avg_rating, trend[]}` |
-| GET | `/reviews` | Reviews table HTML |
-| GET | `/api/reviews?sentiment=&aspect=&q=&lang=` | Paginated review list |
-| GET | `/analytics` | Analytics HTML |
-| GET | `/api/aspects` | `{food:{pos,neu,neg}, service:{...}, ...}` |
-| GET | `/api/keywords?sentiment=positive` | Top N keywords |
-| POST | `/api/analyze` | Manual single-review input → live LLM call → returns ABSA result (demo feature, requires internet) |
+| GET | `/api/health` | `{status, service, time, groq_key_loaded}` |
+| GET | `/api/summary?restaurant_id=&city=` | `{total, positive, neutral, negative, avgRating, ...}` |
+| GET | `/api/trend` | `{trend: [{day, positive, neutral, negative}]}` |
+| GET | `/api/issues` | `{issues: [{issue, mentions, aspect}]}` (Top 3) |
+| GET | `/api/languages` | `{languages: [{lang, count}]}` |
+| GET | `/api/restaurants` | `{restaurants: [{id, name, city, reviews, avg_rating, pos/neu/neg}]}` (Compare) |
+| GET | `/api/aspects` | `{aspects: [{aspect, positive, neutral, negative}]}` |
+| GET | `/api/keywords?limit=` | `{keywords: [{word, count, sentiment}]}` |
+| GET | `/api/reviews?sentiment=&aspect=&lang=&q=&limit=` | `{reviews: [...], total}` |
+| GET | `/api/evaluation` | `{vader, hybrid, _pending}` — stub until Phase 4 |
+| POST | `/api/analyze` | `{text}` → live LLM ABSA result (requires internet) |
 
 ---
 
-## 9. Dashboard Pages (4 pages, login removed) — ✅ UI built
+## 9. Dashboard Pages (5 pages, login removed) — ✅ all live on real data
 
-1. **Dashboard (`/`)** — 4 stat cards (Total / Positive / Negative / Avg Rating) with deltas, sentiment donut, aspect-bars (stacked positive/neutral/negative per aspect), trend area chart (sentiment over time), top keywords cloud-badges, **Top 3 Issues Detected** card (the +10% feature), language mix breakdown.
-2. **Reviews (`/reviews`)** — Filterable list (search + sentiment + aspect + language + date), each row shows author avatar, star rating, language flag-badge, sentiment badge, original + translated text, aspect chips with hover tooltips showing the LLM's evidence quote. Click to expand for full ABSA breakdown.
-3. **Analytics (`/analytics`)** — 4 tabs: (a) Aspect Performance with grouped bar chart + radar chart of aspect health scores + per-aspect cards, (b) Keyword Insights with top positive/negative bars and a typographic keyword cloud, (c) Rating vs Sentiment scatter plot for spotting mismatches/sarcasm, (d) **Pipeline Evaluation** panel comparing VADER baseline vs Hybrid (LLM) accuracy across all metrics — the empirical defense.
-4. **Live Analyze (`/analyze`)** — Two-pane: paste/select a review (sample buttons for each language) → click "Analyze with Hybrid Pipeline" → right pane shows detected language, overall sentiment + confidence, per-aspect ABSA cards with evidence quotes, and extracted keywords. The defense-demo feature.
+1. **Dashboard (`/`)** — 4 stat cards, sentiment donut, aspect-bars, trend area chart, top keywords, **Top 3 Issues Detected**, language mix. Live from `/api/summary|trend|issues|languages|aspects|keywords`.
+2. **Reviews (`/reviews`)** — Filterable list (search + sentiment + aspect + language), each row shows avatar, stars, language badge, sentiment badge, original + translated text, aspect chips with evidence tooltips, expand for full ABSA. **Paginated (15/page)** with page-window controls.
+3. **Analytics (`/analytics`)** — 4 tabs: (a) Aspect Performance (bar + radar + per-aspect cards, **health score = net sentiment mapped 0–100, clamped**), (b) Keyword Insights, (c) Rating vs Sentiment scatter, (d) **Pipeline Evaluation** — shows "pending" until `evaluation/evaluate.py` runs.
+4. **Compare (`/compare`)** — NEW. City summary cards (CDO/Iligan/Marawi), ranked sentiment bar chart, and a **leaderboard** ranked by **Bayesian-shrinkage-adjusted** health score (IMDb method, so a 9-review place can't out-rank a 50-review one). **City filter** (All / each city) + "small sample" badges for <15-review restaurants. Delivers the charter's "+10% restaurant comparison" feature.
+5. **Live Analyze (`/analyze`)** — Two-pane: paste/select a review → "Analyze with Hybrid Pipeline" → live Groq call returns detected language, overall sentiment + confidence, per-aspect ABSA cards with evidence, and keywords. Shows a clear error if backend/key is unavailable.
 
 ### Brand & design tokens
 
@@ -360,15 +416,17 @@ sentiment-analysis-system/
 
 ## 10. Phased Build Order (mapped to WFP phases)
 
-| Phase | Dates | Deliverable | Status |
-|---|---|---|---|
-| **P1a: Plan + UI scaffold** | Apr 23–27 | This plan, React/Vite/Tailwind/shadcn frontend with all 4 pages on mock data | ✅ Done |
-| **P1b: Backend skeleton** | Apr 28–May 4 | Flask + CORS scaffold, `requirements.txt`, `.env.example`, Groq API key wired | ⏳ Next |
-| **P2: Data + Schema** | May 5–8 | Scrape script run → `reviews_raw.csv`, SQLite schema, aspect keyword dictionary, hand-label 50 reviews → `test_set.json` | |
-| **P3a: Hybrid NLP Engine** | May 9–11 | All `nlp/*` modules built, `scripts/ingest.py` runs CSV → DB end-to-end with LLM + VADER baseline both populated | |
-| **P3b: Wire frontend to API** | May 12–13 | Replace `lib/mockData.ts` calls with `fetch('/api/...')`, ship Flask routes for `/api/summary`, `/api/reviews`, `/api/aspects`, `/api/keywords`, `/api/analyze` | |
-| **P4: Test + Evaluate** | May 14–16 | `evaluation/evaluate.py` produces `results.md`, target ≥80% on hybrid pipeline, usability fixes | |
-| **P5: Docs + Demo** | May 17–19 | SRS, slides, demo rehearsal, defense Q&A practice | |
+| Phase | Deliverable | Status |
+|---|---|---|
+| **P1a: Plan + UI scaffold** | This plan, React/Vite/Tailwind/shadcn frontend, all pages on mock data | ✅ Done |
+| **P1b: Backend skeleton** | Flask + CORS, `requirements.txt`, `.env`, Groq key wired, stub routes | ✅ Done |
+| **P2: Data + Schema** | Scraper built (Brave), **390 reviews scraped**, SQLite schema, aspect keyword dictionary | ✅ Done (test_set.json still pending) |
+| **P3a: Hybrid NLP Engine** | All `nlp/*` modules, `scripts/ingest.py` runs CSV → DB with LLM + VADER both populated | ✅ Done |
+| **P3b: Wire frontend to API** | All 5 pages call `/api/...`; mockData kept as graceful fallback | ✅ Done |
+| **P4: Test + Evaluate** | `evaluation/evaluate.py` → `results.md`, ≥80% target, fills the "pending" eval tab | ⏳ **Next / remaining** |
+| **P5: Docs + Demo** | SRS, slides, demo rehearsal, defense Q&A practice | ⏳ Pending |
+
+**Bonus work delivered beyond the original plan:** Compare page (city clustering + Bayesian-adjusted leaderboard), Reviews pagination, language-detection relabel pass, small-sample badges.
 
 ---
 

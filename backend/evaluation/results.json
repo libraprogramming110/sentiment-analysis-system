@@ -1,0 +1,27 @@
+{
+  "vader": {
+    "overall": 58.0,
+    "ceb": 57.1,
+    "en": 57.1,
+    "tl": 65.0,
+    "unknown": 0.0
+  },
+  "hybrid": {
+    "overall": 78.0,
+    "ceb": 71.4,
+    "en": 71.4,
+    "tl": 85.0,
+    "unknown": 100.0
+  },
+  "_pending": false,
+  "_meta": {
+    "evaluated": "2026-05-23",
+    "n": 50,
+    "n_scored": 50,
+    "missing_predictions": 0,
+    "test_set_verified": true,
+    "accuracy_target": 80.0,
+    "target_met": false,
+    "label_method": "Gold labels human-verified by reading each review TEXT. When review text and star rating conflicted, the TEXT was treated as ground truth (the test set evaluates how systems read text, not how users click stars). Aspect labels left as previously seeded."
+  }
+}

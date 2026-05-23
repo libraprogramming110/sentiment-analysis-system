@@ -2,10 +2,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { aspectBreakdown as fallback } from "@/lib/mockData"
 import { api, useApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
-
-const aspectIcon: Record<string, string> = {
-  food: "🍽️", service: "🛎️", ambiance: "🪴", price: "₱", cleanliness: "✨",
-}
+import { AspectIcon } from "@/components/widgets/AspectIcon"
 
 export function AspectBars() {
   const { data } = useApi(api.aspects, { aspects: fallback }, [])
@@ -25,7 +22,7 @@ export function AspectBars() {
             <div key={row.aspect}>
               <div className="mb-1.5 flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 capitalize">
-                  <span className="text-base leading-none">{aspectIcon[row.aspect]}</span>
+                  <AspectIcon aspect={row.aspect} className="h-4 w-4 text-base text-muted-foreground" />
                   <span className="font-medium">{row.aspect}</span>
                   <span className="text-xs text-muted-foreground">{total} mentions</span>
                 </div>

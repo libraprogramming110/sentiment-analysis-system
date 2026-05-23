@@ -1,0 +1,32 @@
+{
+  "food": {
+    "en":  ["food", "taste", "dish", "meal", "flavor", "delicious", "tasty", "fresh", "cooked", "menu", "serving", "portion", "seafood", "rice", "chicken", "grilled", "sauce", "spicy", "sweet", "crispy"],
+    "tl":  ["masarap", "lasa", "ulam", "pagkain", "sarap", "luto", "presko", "matabang", "maalat", "matamis", "maanghang", "kanin", "manok", "isda"],
+    "ceb": ["lami", "lamian", "pagkaon", "lutuon", "presko", "tam-is", "halang", "parat", "isda", "manok", "humay", "sabaw"],
+    "ilo": ["naimas", "taraon", "naangot", "naalsem", "naapgad", "natamis", "ikan", "manok", "inapoy"]
+  },
+  "service": {
+    "en":  ["service", "staff", "waiter", "waitress", "server", "crew", "attentive", "rude", "friendly", "accommodating", "slow", "fast", "wait", "order", "attend", "cashier", "manager", "polite", "helpful"],
+    "tl":  ["serbisyo", "tauhan", "weyter", "mabagal", "mabilis", "magalang", "bastos", "matulungin", "naghintay", "inorder", "kahera"],
+    "ceb": ["serbisyo", "tindera", "hinay", "paspas", "matinabangon", "buotan", "bastos", "naghulat", "mananaog"],
+    "ilo": ["serbisio", "agserbi", "nabuntog", "napartak", "naasi", "naserbi", "naguray"]
+  },
+  "ambiance": {
+    "en":  ["ambiance", "ambience", "atmosphere", "place", "interior", "vibe", "cozy", "noisy", "loud", "quiet", "clean", "spacious", "crowded", "music", "lighting", "view", "aesthetic", "comfortable", "relaxing"],
+    "tl":  ["lugar", "paligid", "maingay", "tahimik", "maaliwalas", "masikip", "magulo", "komportable", "tanawin"],
+    "ceb": ["lugar", "palibot", "saba", "hilom", "hawan", "gutok", "komportable", "talan-awon", "nindot tan-awon"],
+    "ilo": ["lugar", "aglawlaw", "natangken", "naulimek", "nalawa", "naariwawa", "nam-ay"]
+  },
+  "price": {
+    "en":  ["price", "expensive", "cheap", "affordable", "worth", "value", "cost", "pricey", "budget", "overpriced", "reasonable", "pesos", "peso", "money", "bill", "rate"],
+    "tl":  ["presyo", "mahal", "mura", "abot-kaya", "sulit", "halaga", "bayad", "barato", "makatwiran"],
+    "ceb": ["presyo", "mahal", "barato", "kaya", "sulit", "bili", "bayad", "kantidad"],
+    "ilo": ["presyo", "nangina", "nalaka", "barato", "gatad", "bayad", "maipangina"]
+  },
+  "cleanliness": {
+    "en":  ["clean", "dirty", "hygiene", "hygienic", "sanitary", "filthy", "spotless", "tidy", "messy", "smell", "smelly", "bathroom", "restroom", "comfort room", "cr", "table", "floor", "trash"],
+    "tl":  ["malinis", "marumi", "linis", "dumi", "amoy", "mabaho", "banyo", "kubeta", "lamesa", "sahig", "basura"],
+    "ceb": ["limpyo", "hugaw", "baho", "kalibang", "kasilyas", "lamesa", "salog", "basura", "hapsay"],
+    "ilo": ["nadalus", "narugit", "naangot", "banio", "kasilyas", "lamisaan", "datar", "basura"]
+  }
+}

@@ -34,8 +34,6 @@ export interface SummaryResponse {
   neutral: number
   negative: number
   avgRating: number
-  positiveDelta: number
-  negativeDelta: number
 }
 
 export interface TrendPoint { day: string; positive: number; neutral: number; negative: number }
@@ -44,8 +42,22 @@ export interface Issue      { issue: string; mentions: number; aspect: Aspect }
 export interface LangRow    { lang: Language; count: number }
 export interface KeywordRow { word: string; count: number; sentiment: Sentiment }
 
+export interface RestaurantRow {
+  restaurant_id: number
+  name: string
+  city: string | null
+  reviews: number
+  avg_rating: number
+  positive: number
+  neutral: number
+  negative: number
+}
+
 export interface ApiReview {
   id: number
+  restaurantId: number
+  restaurantName: string
+  city: string | null
   author: string
   rating: number
   language: Language
@@ -69,7 +81,8 @@ export interface AnalyzeResponse {
 // Endpoints
 // ────────────────────────────────────────────────────────────────────────────
 export const api = {
-  health:     ()                     => get<{ status: string; groq_key_loaded: boolean }>("/api/health"),
+  health:      ()                    => get<{ status: string; groq_key_loaded: boolean }>("/api/health"),
+  restaurants: ()                    => get<{ restaurants: RestaurantRow[] }>("/api/restaurants"),
   summary:    ()                     => get<SummaryResponse>("/api/summary"),
   trend:      ()                     => get<{ trend: TrendPoint[] }>("/api/trend"),
   issues:     ()                     => get<{ issues: Issue[]      }>("/api/issues"),
@@ -78,17 +91,19 @@ export const api = {
   keywords:   (limit = 20)           => get<{ keywords: KeywordRow[] }>(`/api/keywords?limit=${limit}`),
   evaluation: ()                     => get<{ vader: Record<string, number>; hybrid: Record<string, number>; _pending?: boolean }>("/api/evaluation"),
   reviews:    (params: {
-    sentiment?: Sentiment | "all"
-    aspect?:    Aspect    | "all"
-    lang?:      Language  | "all"
-    q?:         string
-    limit?:     number
+    sentiment?:     Sentiment | "all"
+    aspect?:        Aspect    | "all"
+    lang?:          Language  | "all"
+    q?:             string
+    restaurantId?:  number    | "all"
+    limit?:         number
   } = {}) => {
     const qs = new URLSearchParams()
     if (params.sentiment && params.sentiment !== "all") qs.set("sentiment", params.sentiment)
     if (params.aspect    && params.aspect    !== "all") qs.set("aspect", params.aspect)
     if (params.lang      && params.lang      !== "all") qs.set("lang", params.lang)
     if (params.q)                                      qs.set("q", params.q)
+    if (params.restaurantId && params.restaurantId !== "all") qs.set("restaurant_id", String(params.restaurantId))
     if (params.limit)                                  qs.set("limit", String(params.limit))
     const qstr = qs.toString()
     return get<{ reviews: ApiReview[]; total: number }>(`/api/reviews${qstr ? `?${qstr}` : ""}`)

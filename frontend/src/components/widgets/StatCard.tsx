@@ -1,12 +1,10 @@
 import { Card } from "@/components/ui/card"
-import { ArrowDownRight, ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ReactNode } from "react"
 
 interface StatCardProps {
   label: string
   value: ReactNode
-  delta?: number
   icon?: ReactNode
   tone?: "default" | "positive" | "negative" | "neutral" | "brand"
   helper?: string
@@ -28,8 +26,7 @@ const iconToneClass: Record<NonNullable<StatCardProps["tone"]>, string> = {
   brand:    "bg-brand/15 text-brand",
 }
 
-export function StatCard({ label, value, delta, icon, tone = "default", helper }: StatCardProps) {
-  const isUp = (delta ?? 0) >= 0
+export function StatCard({ label, value, icon, tone = "default", helper }: StatCardProps) {
   return (
     <Card className={cn("relative overflow-hidden ring-1 ring-border", toneClass[tone])}>
       <div className="flex items-start justify-between gap-3 p-5">
@@ -37,17 +34,6 @@ export function StatCard({ label, value, delta, icon, tone = "default", helper }
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-3xl font-semibold tracking-tight tabular-nums">{value}</span>
-            {typeof delta === "number" && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-0.5 text-xs font-medium",
-                  isUp ? "text-sentiment-positive" : "text-sentiment-negative"
-                )}
-              >
-                {isUp ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
-                {Math.abs(delta).toFixed(1)}%
-              </span>
-            )}
           </div>
           {helper && <p className="mt-1.5 text-xs text-muted-foreground">{helper}</p>}
         </div>

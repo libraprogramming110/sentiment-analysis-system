@@ -4,6 +4,8 @@
 CREATE TABLE IF NOT EXISTS restaurants (
     restaurant_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL,
+    external_id   TEXT UNIQUE,                  -- Google place_id (for re-ingest dedup)
+    city          TEXT,                          -- assigned in scraper config
     source_url    TEXT,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -11,6 +13,7 @@ CREATE TABLE IF NOT EXISTS restaurants (
 CREATE TABLE IF NOT EXISTS reviews (
     review_id          INTEGER PRIMARY KEY AUTOINCREMENT,
     restaurant_id      INTEGER REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
+    external_id        TEXT UNIQUE,                -- Google review_id (re-ingest dedup)
     author             TEXT,
     original_text      TEXT NOT NULL,
     translated_text    TEXT,
