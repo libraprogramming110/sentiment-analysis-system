@@ -8,3 +8,4 @@ langdetect>=1.0.9
 scikit-learn>=1.4.0
 deep-translator>=1.11.4
 PyYAML>=6.0
+gunicorn>=21.0.0
