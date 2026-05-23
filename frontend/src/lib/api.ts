@@ -13,7 +13,11 @@ import type { Aspect, Language, Sentiment } from "./mockData"
 const BASE = import.meta.env.VITE_API_BASE ?? ""
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { headers: { Accept: "application/json" } })
+  // credentials: send the session cookie so gated endpoints authorize.
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { Accept: "application/json" },
+    credentials: "same-origin",
+  })
   if (!res.ok) throw new Error(`GET ${path} → ${res.status}`)
   return res.json() as Promise<T>
 }
@@ -22,6 +26,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(`POST ${path} → ${res.status}`)
@@ -71,6 +76,17 @@ export interface ApiReview {
   aspects: { aspect: Aspect; sentiment: Sentiment; evidence: string }[]
 }
 
+export interface User { username: string; role: string }
+
+export interface UploadResponse {
+  inserted: number
+  skipped: number
+  failed: number
+  restaurants_created: number
+  new_total: number
+  errors: string[]
+}
+
 export interface AnalyzeRequest  { text: string }
 export interface AnalyzeResponse {
   language: string
@@ -112,6 +128,37 @@ export const api = {
     return get<{ reviews: ApiReview[]; total: number }>(`/api/reviews${qstr ? `?${qstr}` : ""}`)
   },
   analyze: (body: AnalyzeRequest) => post<AnalyzeResponse>("/api/analyze", body),
+  // Auth. login throws the server's message on bad credentials.
+  login: async (username: string, password: string): Promise<User> => {
+    const res = await fetch(`${BASE}/api/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ username, password }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error((data as { error?: string }).error || "Login failed")
+    return data as User
+  },
+  logout: () => post<{ ok: boolean }>("/api/logout", {}),
+  me: async (): Promise<User | null> => {
+    const res = await fetch(`${BASE}/api/me`, {
+      headers: { Accept: "application/json" },
+      credentials: "same-origin",
+    })
+    if (!res.ok) return null
+    return res.json() as Promise<User>
+  },
+  upload: async (file: File, datasetName?: string): Promise<UploadResponse> => {
+    const form = new FormData()
+    form.append("file", file)
+    if (datasetName) form.append("dataset_name", datasetName)
+    // No Content-Type header: the browser sets the multipart boundary itself.
+    const res = await fetch(`${BASE}/api/upload`, { method: "POST", body: form, credentials: "same-origin" })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error((data as { error?: string }).error || `Upload failed (${res.status})`)
+    return data as UploadResponse
+  },
 }
 
 // ────────────────────────────────────────────────────────────────────────────

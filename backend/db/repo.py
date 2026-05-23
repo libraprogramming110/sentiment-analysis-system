@@ -5,12 +5,14 @@ and small helpers for the read paths the dashboard needs.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
 from flask import g
+from werkzeug.security import generate_password_hash
 
 DB_PATH = Path(__file__).resolve().parent.parent / "restopulse.db"
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
@@ -51,7 +53,30 @@ def init_db() -> None:
 def init_app(app) -> None:
     """Register teardown + ensure schema exists before first request."""
     init_db()
+    _seed_default_user()
     app.teardown_appcontext(close_db)
+
+
+def _seed_default_user() -> None:
+    """Create the demo account on first run if no users exist (charter login).
+
+    Runs at startup outside any request context, so it opens its own connection
+    rather than using get_db(). Credentials overridable via env; defaults shown
+    on the login page for the demo.
+    """
+    username = os.getenv("ADMIN_USER", "admin")
+    password = os.getenv("ADMIN_PASS", "restopulse123")
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        n = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        if n == 0:
+            conn.execute(
+                "INSERT INTO users(username, password_hash, role) VALUES (?, ?, 'owner')",
+                (username, generate_password_hash(password)),
+            )
+            conn.commit()
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -350,6 +375,31 @@ def upsert_restaurant(
     )
     db.commit()
     return cur.lastrowid
+
+
+# ---------------------------------------------------------------------------
+# Users / auth
+# ---------------------------------------------------------------------------
+def get_user(username: str) -> dict[str, Any] | None:
+    row = get_db().execute(
+        "SELECT user_id, username, password_hash, role FROM users WHERE username = ?",
+        (username,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def create_user(username: str, password_hash: str, role: str = "owner") -> int:
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO users(username, password_hash, role) VALUES (?, ?, ?)",
+        (username, password_hash, role),
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def count_users() -> int:
+    return get_db().execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
 
 
 def review_exists(external_id: str) -> bool:
