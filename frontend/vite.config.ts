@@ -14,4 +14,11 @@ export default defineConfig({
     outDir: '../backend/webdist',
     emptyOutDir: true,
   },
+  server: {
+    // In dev the SPA runs on :5173; forward API calls to the Flask backend on :5000
+    // so the frontend can use relative "/api/..." paths in both dev and production.
+    proxy: {
+      '/api': 'http://127.0.0.1:5000',
+    },
+  },
 })
