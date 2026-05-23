@@ -1,15 +1,16 @@
 /**
  * Typed Flask API client.
  *
- * - Reads VITE_API_BASE from env (defaults to http://127.0.0.1:5000)
+ * - Uses a relative "/api" base by default (same origin); VITE_API_BASE can override
  * - One thin fetch helper, one typed function per endpoint
  * - Throws on non-2xx so callers can do try/catch and fall back to mockData
  */
 import type { Aspect, Language, Sentiment } from "./mockData"
 
-// In production the SPA is served by Flask on the same origin, so call "/api/..."
-// relatively. In dev, hit the local Flask server. An explicit VITE_API_BASE wins either way.
-const BASE = import.meta.env.VITE_API_BASE ?? (import.meta.env.PROD ? "" : "http://127.0.0.1:5000")
+// Always call the API relatively ("/api/..."). In production Flask serves the SPA on the
+// same origin; in dev the Vite proxy (see vite.config.ts) forwards /api to Flask on :5000.
+// An explicit VITE_API_BASE still overrides (e.g. a split frontend/backend deploy).
+const BASE = import.meta.env.VITE_API_BASE ?? ""
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: { Accept: "application/json" } })
